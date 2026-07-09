@@ -1,12 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeIn, FadeInDown, FadeOut, LinearTransition } from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  FadeIn,
+  FadeInDown,
+  FadeOut,
+  interpolateColor,
+  LinearTransition,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { PosterPlaceholder } from '@/components/PosterPlaceholder';
 import { useDensity } from '@/contexts/DensityContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { tapHaptic } from '@/lib/haptics';
+import { successHaptic } from '@/lib/haptics';
 
 export interface BacklogRowItem {
   key: string;
@@ -26,26 +37,51 @@ interface Props {
 }
 
 /**
- * Animated "À rattraper" row: tapping the check pops + fills it, then the new
- * episode's subtitle fades in when data updates. Rows fade out and the list
- * reflows smoothly when a series leaves the backlog.
+ * Animated "À rattraper" row: a "Vu" pill marks the item; the subtitle then
+ * fades to the next episode when data updates. Rows fade out and the list
+ * reflows smoothly when a title leaves the backlog.
  */
 export function BacklogRow({ item, onOpen, onMark }: Props) {
   const { colors } = useTheme();
   const { density } = useDensity();
   const posterW = density === 'compact' ? 40 : 48;
 
-  const [confirmed, setConfirmed] = useState(false);
-
-  // Reset the check once the row advances to the next episode.
+  // Keyed so the subtitle re-animates when the row advances to the next episode.
   const epKey = item.episode ? `${item.episode.seasonNumber}-${item.episode.episodeNumber}` : 'movie';
+
+  // Green confirmation: the check fill and the row wash rise together (same
+  // timing) so they swell as one; the wash then recedes while the check stays.
+  const [confirmed, setConfirmed] = useState(false);
+  const flash = useSharedValue(0);
+  const fill = useSharedValue(0);
+  const RISE = 260;
+  const EASE = Easing.out(Easing.cubic);
+
   useEffect(() => {
     setConfirmed(false);
-  }, [epKey]);
+    fill.value = 0;
+  }, [epKey, fill]);
+
+  const rowStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+      flash.value,
+      [0, 1],
+      ['rgba(0,0,0,0)', 'rgba(46,158,91,0.16)'],
+    ),
+  }));
+  const fillStyle = useAnimatedStyle(() => ({
+    opacity: fill.value,
+    transform: [{ scale: 0.6 + 0.4 * fill.value }],
+  }));
 
   const handleMark = () => {
-    tapHaptic();
+    successHaptic();
     setConfirmed(true);
+    fill.value = withTiming(1, { duration: RISE, easing: EASE });
+    flash.value = withSequence(
+      withTiming(1, { duration: RISE, easing: EASE }),
+      withTiming(0, { duration: 620, easing: Easing.inOut(Easing.quad) }),
+    );
     onMark?.();
   };
 
@@ -54,6 +90,7 @@ export function BacklogRow({ item, onOpen, onMark }: Props) {
       layout={LinearTransition.duration(260)}
       entering={FadeIn.duration(200)}
       exiting={FadeOut.duration(160)}
+      style={[styles.wrap, rowStyle]}
     >
       <Pressable
         onPress={onOpen}
@@ -80,18 +117,17 @@ export function BacklogRow({ item, onOpen, onMark }: Props) {
             hitSlop={8}
             accessibilityRole="button"
             accessibilityLabel={item.episode ? 'Marquer cet épisode vu' : 'Marquer comme vu'}
+            style={({ pressed }) => [
+              styles.check,
+              { borderColor: colors.border, opacity: pressed ? 0.5 : 1 },
+            ]}
           >
-            <View
-              style={[
-                styles.check,
-                {
-                  borderColor: colors.accent,
-                  backgroundColor: confirmed ? colors.accent : 'transparent',
-                },
-              ]}
-            >
-              <Ionicons name="checkmark" size={18} color={confirmed ? colors.accentText : colors.accent} />
-            </View>
+            <Ionicons name="checkmark" size={18} color={colors.textMeta} />
+            {confirmed ? (
+              <Animated.View style={[styles.checkFill, { backgroundColor: colors.success }, fillStyle]}>
+                <Ionicons name="checkmark" size={18} color="#fff" />
+              </Animated.View>
+            ) : null}
           </Pressable>
         ) : null}
       </Pressable>
@@ -100,6 +136,7 @@ export function BacklogRow({ item, onOpen, onMark }: Props) {
 }
 
 const styles = StyleSheet.create({
+  wrap: { borderRadius: 12, marginHorizontal: -8, paddingHorizontal: 8 },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
   text: { flex: 1, marginLeft: 12 },
   title: { fontSize: 16, fontWeight: '600', marginBottom: 2 },
@@ -112,5 +149,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 10,
+    overflow: 'hidden',
+  },
+  checkFill: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -21,6 +21,7 @@ export interface ColorTokens {
   star: string;
   starEmpty: string;
   danger: string;
+  success: string;
 }
 
 const light: ColorTokens = {
@@ -37,6 +38,7 @@ const light: ColorTokens = {
   star: '#E8A33D',
   starEmpty: '#D9D3CA',
   danger: '#C0563E',
+  success: '#2E9E5B',
 };
 
 const dark: ColorTokens = {
@@ -53,6 +55,7 @@ const dark: ColorTokens = {
   star: '#F0B44E',
   starEmpty: '#4A443D',
   danger: '#E0765C',
+  success: '#5FD08A',
 };
 
 export const colorTokens: Record<ColorScheme, ColorTokens> = { light, dark };

@@ -58,10 +58,17 @@ export default function Library() {
 
   const stats = useMemo(() => {
     const list = entries ?? [];
+    const rated = list.filter((e) => e.status === 'completed' && e.rating != null);
+    const avg = rated.length
+      ? rated.reduce((s, e) => s + (e.rating ?? 0), 0) / rated.length
+      : null;
     return {
-      episodes: progressRows?.length ?? 0,
       movies: list.filter((e) => e.media.media_type === 'movie' && e.status === 'completed').length,
+      series: list.filter((e) => e.media.media_type === 'tv' && e.status === 'completed').length,
+      episodes: progressRows?.length ?? 0,
       watching: list.filter((e) => e.status === 'watching').length,
+      planned: list.filter((e) => e.status === 'plan_to_watch').length,
+      avg: avg != null ? avg.toFixed(1).replace('.', ',') : '—',
     };
   }, [entries, progressRows]);
 
@@ -112,9 +119,12 @@ export default function Library() {
   const header = (
     <View>
       <View style={[styles.counters, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Counter value={stats.episodes} label="épisodes vus" />
         <Counter value={stats.movies} label="films vus" />
+        <Counter value={stats.series} label="séries vues" />
+        <Counter value={stats.episodes} label="épisodes vus" />
         <Counter value={stats.watching} label="en cours" />
+        <Counter value={stats.planned} label="à voir" />
+        <Counter value={stats.avg} label="note moy." />
       </View>
       <View style={styles.sorts}>
         {SORTS.map((s) => {
@@ -185,13 +195,14 @@ const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   counters: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     borderRadius: 16,
     borderWidth: 1,
-    paddingVertical: 16,
+    paddingVertical: 8,
     marginBottom: 16,
   },
-  counter: { flex: 1, alignItems: 'center' },
-  counterValue: { fontSize: 24, fontWeight: '800' },
+  counter: { width: '33.33%', alignItems: 'center', paddingVertical: 10 },
+  counterValue: { fontSize: 22, fontWeight: '800' },
   counterLabel: { fontSize: 12, marginTop: 2 },
   sorts: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   chip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999 },
