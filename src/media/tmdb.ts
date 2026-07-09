@@ -86,6 +86,13 @@ export const tmdbMediaProvider: MediaProvider = {
       .filter((s): s is MediaSummary => s !== null);
   },
 
+  async trending(): Promise<MediaSummary[]> {
+    const data = await tmdb<{ results: TmdbSearchItem[] }>('/trending/all/week');
+    return data.results
+      .map((r) => toSummary(r))
+      .filter((s): s is MediaSummary => s !== null);
+  },
+
   async getDetails(tmdbId: number, mediaType: MediaType): Promise<MediaDetails | null> {
     if (mediaType === 'movie') {
       const m = await tmdb<TmdbSearchItem & { runtime?: number; genres?: { name: string }[] }>(

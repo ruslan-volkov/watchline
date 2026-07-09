@@ -16,10 +16,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmptyState } from '@/components/EmptyState';
 import { ListRow } from '@/components/ListRow';
 import { RatingSheet } from '@/components/RatingSheet';
+import { SectionHeader } from '@/components/SectionHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { useDensity } from '@/contexts/DensityContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useMediaSearch } from '@/features/media/useMediaSearch';
+import { useMediaSearch, useTrending } from '@/features/media/useMediaSearch';
 import { useEntryMutations } from '@/features/watch/useEntryMutations';
 import { useWatchEntries } from '@/features/watch/useWatchEntries';
 import { statusLabels } from '@/theme/tokens';
@@ -52,6 +53,8 @@ export default function Search() {
   const [query, setQuery] = useState('');
   const debounced = useDebounced(query);
   const { data: results, isLoading } = useMediaSearch(debounced);
+  const { data: trending, isLoading: trendingLoading } = useTrending();
+  const showTrending = debounced.trim().length === 0;
 
   const [selected, setSelected] = useState<MediaSummary | null>(null);
   const [ratingFor, setRatingFor] = useState<{ entryId: string; title: string } | null>(null);
@@ -84,7 +87,11 @@ export default function Search() {
     router.back();
   };
 
-  const listData = useMemo(() => results ?? [], [results]);
+  const listData = useMemo(
+    () => (showTrending ? trending ?? [] : results ?? []),
+    [showTrending, trending, results],
+  );
+  const loading = showTrending ? trendingLoading : isLoading;
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.bg }]} edges={['top']}>
@@ -106,18 +113,18 @@ export default function Search() {
         </Pressable>
       </View>
 
-      {isLoading ? (
+      {loading ? (
         <View style={styles.center}>
           <ActivityIndicator color={colors.accent} />
         </View>
       ) : listData.length === 0 ? (
         <EmptyState
           icon="film-outline"
-          title={query ? 'Aucun résultat' : 'Cherche un titre'}
+          title={showTrending ? 'Cherche un titre' : 'Aucun résultat'}
           message={
-            query
-              ? 'Essaie un autre nom — orthographe ou titre original.'
-              : 'Tape le nom d’un film ou d’une série pour l’ajouter à ton suivi.'
+            showTrending
+              ? 'Tape le nom d’un film ou d’une série pour l’ajouter à ton suivi.'
+              : 'Essaie un autre nom — orthographe ou titre original.'
           }
         />
       ) : (
@@ -125,6 +132,9 @@ export default function Search() {
           data={listData}
           keyExtractor={(item) => `${item.mediaType}-${item.tmdbId}`}
           keyboardShouldPersistTaps="handled"
+          ListHeaderComponent={
+            showTrending ? <SectionHeader>Tendances cette semaine</SectionHeader> : null
+          }
           contentContainerStyle={{ paddingHorizontal: spacing.screenPadding, paddingBottom: 40 }}
           renderItem={({ item }) => {
             const typeLabel = item.mediaType === 'tv' ? 'Série' : 'Film';

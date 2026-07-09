@@ -12,3 +12,12 @@ export function useMediaSearch(query: string) {
     staleTime: 60_000,
   });
 }
+
+/** Trending titles this week — shown when the search box is empty. */
+export function useTrending() {
+  return useQuery<MediaSummary[]>({
+    queryKey: ['media_trending'],
+    queryFn: () => mediaProvider.trending(),
+    staleTime: 60 * 60_000,
+  });
+}

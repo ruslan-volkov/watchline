@@ -195,4 +195,8 @@ export const mockMediaProvider: MediaProvider = {
     const found = ALL.find((e) => e.tmdbId === tmdbId && e.mediaType === mediaType);
     return delay(found ?? null);
   },
+
+  async trending(): Promise<MediaSummary[]> {
+    return delay(ALL.map(toSummary));
+  },
 };

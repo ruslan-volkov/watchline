@@ -50,4 +50,6 @@ export interface MediaDetails extends MediaSummary {
 export interface MediaProvider {
   search(query: string): Promise<MediaSummary[]>;
   getDetails(tmdbId: number, mediaType: MediaType): Promise<MediaDetails | null>;
+  /** Popular titles this week, for the empty search state. */
+  trending(): Promise<MediaSummary[]>;
 }
