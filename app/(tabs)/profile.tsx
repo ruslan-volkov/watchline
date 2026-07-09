@@ -69,7 +69,15 @@ export default function Profile() {
   ];
 
   return (
-    <Screen title={profile?.username ?? 'Profil'} padded={false}>
+    <Screen
+      title={profile?.username ?? 'Profil'}
+      padded={false}
+      headerRight={
+        <Pressable onPress={() => router.push('/edit-profile')} hitSlop={8} accessibilityRole="button">
+          <Text style={{ color: colors.accent, fontSize: 15, fontWeight: '600' }}>Modifier</Text>
+        </Pressable>
+      }
+    >
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}

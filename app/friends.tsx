@@ -28,6 +28,9 @@ export default function Friends() {
   const { send, accept, remove } = useFriendMutations();
   const { refreshing, onRefresh } = usePullRefresh([['friendships'], ['friend_activity']]);
 
+  const openProfile = (id: string, username?: string | null) =>
+    router.push({ pathname: '/friend/[id]', params: { id, name: username ?? '' } });
+
   const [query, setQuery] = useState('');
   const { data: results, isFetching } = useUserSearch(query);
   const searching = query.trim().length >= 2;
@@ -90,10 +93,16 @@ export default function Friends() {
                 const rel = relation.get(u.id);
                 return (
                   <View key={u.id} style={styles.row}>
-                    <Avatar name={u.username} avatarUrl={u.avatar_url} seed={u.id} />
-                    <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>
-                      {u.username}
-                    </Text>
+                    <Pressable
+                      style={styles.friendMain}
+                      onPress={() => openProfile(u.id, u.username)}
+                      accessibilityRole="button"
+                    >
+                      <Avatar name={u.username} avatarUrl={u.avatar_url} seed={u.id} />
+                      <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>
+                        {u.username}
+                      </Text>
+                    </Pressable>
                     {rel === 'friend' ? (
                       <Text style={[styles.badge, { color: colors.textMeta }]}>Ami</Text>
                     ) : rel === 'outgoing' ? (
@@ -121,10 +130,16 @@ export default function Friends() {
                 <SectionHeader>Demandes reçues</SectionHeader>
                 {incoming.map((f) => (
                   <View key={f.id} style={styles.row}>
-                    <Avatar name={f.requester?.username} avatarUrl={f.requester?.avatar_url} seed={f.user_id} />
-                    <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>
-                      {f.requester?.username ?? 'Utilisateur'}
-                    </Text>
+                    <Pressable
+                      style={styles.friendMain}
+                      onPress={() => openProfile(f.user_id, f.requester?.username)}
+                      accessibilityRole="button"
+                    >
+                      <Avatar name={f.requester?.username} avatarUrl={f.requester?.avatar_url} seed={f.user_id} />
+                      <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>
+                        {f.requester?.username ?? 'Utilisateur'}
+                      </Text>
+                    </Pressable>
                     <Pressable
                       onPress={() => accept.mutate(f.id)}
                       style={[styles.action, { backgroundColor: colors.accent }]}
@@ -150,15 +165,27 @@ export default function Friends() {
                 const activity = profile ? activityByUser.get(profile.id) : undefined;
                 return (
                   <View key={friendship.id} style={styles.row}>
-                    <Avatar name={profile?.username} avatarUrl={profile?.avatar_url} seed={profile?.id} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>
-                        {profile?.username ?? 'Utilisateur'}
-                      </Text>
-                      <Text style={[styles.activity, { color: colors.textSecondary }]} numberOfLines={1}>
-                        {activity ? `Regarde ${activity.title}` : 'Activité masquée'}
-                      </Text>
-                    </View>
+                    <Pressable
+                      style={styles.friendMain}
+                      onPress={() =>
+                        profile &&
+                        router.push({
+                          pathname: '/friend/[id]',
+                          params: { id: profile.id, name: profile.username ?? '' },
+                        })
+                      }
+                      accessibilityRole="button"
+                    >
+                      <Avatar name={profile?.username} avatarUrl={profile?.avatar_url} seed={profile?.id} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>
+                          {profile?.username ?? 'Utilisateur'}
+                        </Text>
+                        <Text style={[styles.activity, { color: colors.textSecondary }]} numberOfLines={1}>
+                          {activity ? `Regarde ${activity.title}` : 'Activité masquée'}
+                        </Text>
+                      </View>
+                    </Pressable>
                     <Pressable onPress={() => remove.mutate(friendship.id)} hitSlop={8}>
                       <Ionicons name="ellipsis-horizontal" size={20} color={colors.textMeta} />
                     </Pressable>
@@ -172,10 +199,16 @@ export default function Friends() {
                 <SectionHeader>Demandes envoyées</SectionHeader>
                 {outgoing.map((f) => (
                   <View key={f.id} style={styles.row}>
-                    <Avatar name={f.addressee?.username} avatarUrl={f.addressee?.avatar_url} seed={f.friend_id} />
-                    <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>
-                      {f.addressee?.username ?? 'Utilisateur'}
-                    </Text>
+                    <Pressable
+                      style={styles.friendMain}
+                      onPress={() => openProfile(f.friend_id, f.addressee?.username)}
+                      accessibilityRole="button"
+                    >
+                      <Avatar name={f.addressee?.username} avatarUrl={f.addressee?.avatar_url} seed={f.friend_id} />
+                      <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>
+                        {f.addressee?.username ?? 'Utilisateur'}
+                      </Text>
+                    </Pressable>
                     <Text style={[styles.badge, { color: colors.textMeta }]}>En attente</Text>
                     <Pressable onPress={() => remove.mutate(f.id)} hitSlop={8} style={styles.decline}>
                       <Ionicons name="close" size={20} color={colors.textMeta} />
@@ -215,6 +248,7 @@ const styles = StyleSheet.create({
   input: { flex: 1, fontSize: 16 },
   content: { paddingHorizontal: 20 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
+  friendMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   name: { flex: 1, fontSize: 16, fontWeight: '600' },
   activity: { fontSize: 13, marginTop: 1 },
   badge: { fontSize: 13, fontWeight: '600' },

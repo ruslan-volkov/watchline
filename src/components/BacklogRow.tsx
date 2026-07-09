@@ -74,12 +74,12 @@ export function BacklogRow({ item, onOpen, onMark }: Props) {
             {item.subtitle}
           </Animated.Text>
         </View>
-        {item.episode ? (
+        {onMark ? (
           <Pressable
             onPress={handleMark}
             hitSlop={8}
             accessibilityRole="button"
-            accessibilityLabel="Marquer cet épisode vu"
+            accessibilityLabel={item.episode ? 'Marquer cet épisode vu' : 'Marquer comme vu'}
           >
             <View
               style={[

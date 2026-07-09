@@ -1,4 +1,5 @@
 import type { Session } from '@supabase/supabase-js';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   createContext,
   useCallback,
@@ -27,6 +28,8 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const qc = useQueryClient();
+  const currentUserId = useRef<string | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [initializing, setInitializing] = useState(true);
@@ -45,12 +48,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     supabase.auth.getSession().then(async ({ data }) => {
       if (!active) return;
+      currentUserId.current = data.session?.user.id ?? null;
       setSession(data.session);
       if (data.session) await fetchProfile(data.session.user.id);
       if (active) setInitializing(false);
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+      const nextId = next?.user.id ?? null;
+      // Different user (login / logout / account switch) → drop all cached data
+      // so the previous account's entries/friends don't leak into the new one.
+      if (nextId !== currentUserId.current) {
+        qc.clear();
+        currentUserId.current = nextId;
+      }
       setSession(next);
       if (next) {
         fetchProfile(next.user.id);
@@ -63,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       active = false;
       sub.subscription.unsubscribe();
     };
-  }, [fetchProfile]);
+  }, [fetchProfile, qc]);
 
   const refreshProfile = useCallback(async () => {
     if (session) await fetchProfile(session.user.id);

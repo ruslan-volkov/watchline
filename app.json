@@ -32,6 +32,12 @@
         {
           "color": "#6C5CE7"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Watchline utilise tes photos pour choisir un avatar."
+        }
       ]
     ],
     "experiments": {

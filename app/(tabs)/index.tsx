@@ -16,12 +16,14 @@ import { EmptyState } from '@/components/EmptyState';
 import { Fab } from '@/components/Fab';
 import { ListRow } from '@/components/ListRow';
 import { NowWatchingCard } from '@/components/NowWatchingCard';
+import { RatingSheet } from '@/components/RatingSheet';
 import { Screen } from '@/components/Screen';
 import { SectionHeader } from '@/components/SectionHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { useDensity } from '@/contexts/DensityContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useMarkNext } from '@/features/episodes/useMarkNext';
+import { useEntryMutations } from '@/features/watch/useEntryMutations';
 import { useNowWatching } from '@/features/watch/useNowWatching';
 import { useWatchEntries } from '@/features/watch/useWatchEntries';
 import { usePullRefresh } from '@/hooks/usePullRefresh';
@@ -48,7 +50,21 @@ export default function Timeline() {
   const { data: entries, isLoading } = useWatchEntries();
   const { cards } = useNowWatching();
   const markNext = useMarkNext();
+  const { update } = useEntryMutations();
+  const [ratingFor, setRatingFor] = useState<{ entryId: string; title: string } | null>(null);
   const [backlogOpen, setBacklogOpen] = useState(true);
+
+  const markMovieSeen = (entryId: string, title: string) => {
+    update.mutate({
+      entryId,
+      patch: { status: 'completed', finished_at: new Date().toISOString().slice(0, 10) },
+    });
+    setRatingFor({ entryId, title });
+  };
+  const submitRating = (rating: number | null, notes: string | null) => {
+    if (ratingFor) update.mutate({ entryId: ratingFor.entryId, patch: { rating, notes } });
+    setRatingFor(null);
+  };
   const { refreshing, onRefresh } = usePullRefresh([['watch_entries'], ['progress_all']]);
 
   // "En cours" is open by default, but auto-collapses when its header would fall
@@ -129,6 +145,8 @@ export default function Timeline() {
       subtitle: string;
       tmdbId: number;
       mediaType: MediaType;
+      /** Set for released movies: enables the inline "mark seen" check + rating. */
+      movieEntryId?: string;
       /** Set for series rows: enables the inline "mark watched" check. */
       episode?: {
         entryId: string;
@@ -152,6 +170,7 @@ export default function Timeline() {
             subtitle: isMovie ? 'Sorti · à voir' : 'Dispo · à commencer',
             tmdbId: e.media.tmdb_id,
             mediaType: e.media.media_type,
+            movieEntryId: isMovie ? e.id : undefined,
           });
         }
       }
@@ -260,7 +279,9 @@ export default function Timeline() {
                                 watchedBefore: item.episode!.watched,
                                 total: item.episode!.total,
                               })
-                          : undefined
+                          : item.movieEntryId
+                            ? () => markMovieSeen(item.movieEntryId!, item.title)
+                            : undefined
                       }
                     />
                   ))
@@ -344,6 +365,12 @@ export default function Timeline() {
         </ScrollView>
       )}
       <Fab onPress={() => router.push('/search')} accessibilityLabel="Ajouter un titre" />
+      <RatingSheet
+        visible={!!ratingFor}
+        title={ratingFor?.title ?? ''}
+        onSubmit={submitRating}
+        onSkip={() => setRatingFor(null)}
+      />
     </Screen>
   );
 }
