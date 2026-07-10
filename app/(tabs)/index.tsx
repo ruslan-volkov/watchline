@@ -21,6 +21,7 @@ import { Screen } from '@/components/Screen';
 import { Toast, type ToastState } from '@/components/Toast';
 import { SectionHeader } from '@/components/SectionHeader';
 import { StatusBadge } from '@/components/StatusBadge';
+import { UpcomingCalendar } from '@/components/UpcomingCalendar';
 import { useDensity } from '@/contexts/DensityContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useMarkNext } from '@/features/episodes/useMarkNext';
@@ -55,6 +56,7 @@ export default function Timeline() {
   const [ratingFor, setRatingFor] = useState<{ entryId: string; title: string } | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [backlogOpen, setBacklogOpen] = useState(true);
+  const [upcomingView, setUpcomingView] = useState<'list' | 'calendar'>('list');
 
   const snooze = (entryId: string) => {
     update.mutate({ entryId, patch: { snoozed: true } });
@@ -309,22 +311,58 @@ export default function Timeline() {
             </View>
           ) : null}
 
-          {grouped.map(([bucket, items]) => (
-            <View key={bucket}>
-              <SectionHeader>{bucket}</SectionHeader>
-              {items.map((item) => (
-                <ListRow
-                  key={item.key}
-                  seed={item.seed}
-                  title={item.title}
-                  posterPath={item.posterPath}
-                  subtitle={item.subtitle}
-                  onPress={() => openMedia(item.tmdbId, item.mediaType)}
-                  right={item.isMovie ? <StatusBadge status="plan_to_watch" /> : undefined}
+          {upcoming.length > 0 ? (
+            <View>
+              <View style={[styles.viewToggle, { backgroundColor: colors.surfaceAlt }]}>
+                {(['list', 'calendar'] as const).map((v) => {
+                  const active = upcomingView === v;
+                  return (
+                    <Pressable
+                      key={v}
+                      onPress={() => setUpcomingView(v)}
+                      style={[styles.viewToggleItem, active && { backgroundColor: colors.surface }]}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                    >
+                      <Text
+                        style={[
+                          styles.viewToggleText,
+                          { color: active ? colors.textPrimary : colors.textSecondary },
+                        ]}
+                      >
+                        {v === 'list' ? 'Liste' : 'Calendrier'}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {upcomingView === 'list' ? (
+                grouped.map(([bucket, items]) => (
+                  <View key={bucket}>
+                    <SectionHeader>{bucket}</SectionHeader>
+                    {items.map((item) => (
+                      <ListRow
+                        key={item.key}
+                        seed={item.seed}
+                        title={item.title}
+                        posterPath={item.posterPath}
+                        subtitle={item.subtitle}
+                        onPress={() => openMedia(item.tmdbId, item.mediaType)}
+                        right={item.isMovie ? <StatusBadge status="plan_to_watch" /> : undefined}
+                      />
+                    ))}
+                  </View>
+                ))
+              ) : (
+                <UpcomingCalendar
+                  items={upcoming}
+                  onOpen={openMedia}
+                  screenPadding={spacing.screenPadding}
                 />
-              ))}
+              )}
             </View>
-          ))}
+          ) : null}
 
           {backlog.length === 0 && grouped.length === 0 && cards.length === 0 ? (
             <Text style={[styles.quiet, { color: colors.textMeta }]}>
@@ -400,5 +438,15 @@ const styles = StyleSheet.create({
   quiet: { fontSize: 15, marginTop: 24, textAlign: 'center' },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   collapseHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  viewToggle: {
+    flexDirection: 'row',
+    alignSelf: 'flex-start',
+    borderRadius: 10,
+    padding: 3,
+    marginTop: 18,
+    marginBottom: 6,
+  },
+  viewToggleItem: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8 },
+  viewToggleText: { fontSize: 13, fontWeight: '600' },
 });
 

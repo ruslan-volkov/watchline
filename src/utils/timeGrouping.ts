@@ -3,6 +3,23 @@ const MONTHS_FR = [
   'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.',
 ];
 
+const MONTHS_FULL = [
+  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
+];
+
+/** "Juillet 2026" from an ISO date, for calendar month headers. */
+export function monthYearLabel(isoDate: string): string {
+  const d = new Date(`${isoDate}T00:00:00`);
+  return `${MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+/** "12 juil." — compact day + month, for calendar date pills. */
+export function dayMonthLabel(isoDate: string): string {
+  const d = new Date(`${isoDate}T00:00:00`);
+  return `${d.getDate()} ${MONTHS_FR[d.getMonth()]}`;
+}
+
 /** Short French label for a future air date ("Demain", "Dans 4 jours", "12 août"). */
 export function airDateLabel(isoDate: string): string {
   const d = daysFromToday(isoDate);
