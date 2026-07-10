@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -57,6 +57,7 @@ export default function Timeline() {
   const [toast, setToast] = useState<ToastState | null>(null);
   const [backlogOpen, setBacklogOpen] = useState(true);
   const [upcomingView, setUpcomingView] = useState<'list' | 'calendar'>('list');
+  const scrollRef = useRef<ScrollView>(null);
 
   const snooze = (entryId: string) => {
     update.mutate({ entryId, patch: { snoozed: true } });
@@ -280,6 +281,7 @@ export default function Timeline() {
         )
       ) : (
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={{ paddingHorizontal: spacing.screenPadding, paddingBottom: 32 }}
           showsVerticalScrollIndicator={false}
           onLayout={(e) => setViewportH(e.nativeEvent.layout.height)}
@@ -321,6 +323,7 @@ export default function Timeline() {
                 items={calendarItems}
                 onOpen={openMedia}
                 screenPadding={spacing.screenPadding}
+                scrollRef={scrollRef}
               />
             ) : (
               <Text style={[styles.quiet, { color: colors.textMeta }]}>

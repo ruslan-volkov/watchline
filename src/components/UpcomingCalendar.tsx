@@ -1,5 +1,13 @@
-import { useMemo, useState } from 'react';
-import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useRef, useState, type RefObject } from 'react';
+import {
+  Dimensions,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type LayoutChangeEvent,
+} from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 
@@ -25,6 +33,8 @@ interface Props {
   onOpen: (tmdbId: number, type: MediaType) => void;
   /** Horizontal padding of the parent, to compute poster widths. */
   screenPadding: number;
+  /** Parent scroll view — used to jump to the current month on open. */
+  scrollRef?: RefObject<ScrollView | null>;
 }
 
 const MIN_COLS = 1;
@@ -33,9 +43,22 @@ const GAP = 10;
 
 /** Vertical "photo library" style timeline: releases grouped by month, with a
  *  pinch gesture to change grid density (1 = one row per title, up to 5). */
-export function UpcomingCalendar({ items, onOpen, screenPadding }: Props) {
+export function UpcomingCalendar({ items, onOpen, screenPadding, scrollRef }: Props) {
   const { colors } = useTheme();
   const [columns, setColumns] = useState(3);
+
+  // Jump the parent scroll to the current month (or the nearest upcoming one)
+  // once both the calendar's offset and the target month's offset are known.
+  const rootY = useRef<number | null>(null);
+  const monthY = useRef<number | null>(null);
+  const jumped = useRef(false);
+  const tryJump = () => {
+    if (jumped.current || rootY.current == null || monthY.current == null || !scrollRef?.current) {
+      return;
+    }
+    scrollRef.current.scrollTo({ y: Math.max(0, rootY.current + monthY.current - 12), animated: false });
+    jumped.current = true;
+  };
 
   const step = (zoomIn: boolean) =>
     setColumns((c) => (zoomIn ? Math.max(MIN_COLS, c - 1) : Math.min(MAX_COLS, c + 1)));
@@ -58,8 +81,14 @@ export function UpcomingCalendar({ items, onOpen, screenPadding }: Props) {
     }
     return [...map.entries()]
       .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([, list]) => ({ label: monthYearLabel(list[0].date), items: list }));
+      .map(([key, list]) => ({ key, label: monthYearLabel(list[0].date), items: list }));
   }, [items]);
+
+  const now = new Date();
+  const nowKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  // Current month if present, else the first upcoming one, else the latest.
+  const targetKey =
+    months.find((m) => m.key >= nowKey)?.key ?? months[months.length - 1]?.key;
 
   const availWidth = Dimensions.get('window').width - screenPadding * 2;
   const posterW = (availWidth - GAP * (columns - 1)) / columns;
@@ -67,9 +96,24 @@ export function UpcomingCalendar({ items, onOpen, screenPadding }: Props) {
 
   return (
     <GestureDetector gesture={pinch}>
-      <View>
+      <View
+        onLayout={(e: LayoutChangeEvent) => {
+          rootY.current = e.nativeEvent.layout.y;
+          tryJump();
+        }}
+      >
         {months.map((month) => (
-          <View key={month.label}>
+          <View
+            key={month.key}
+            onLayout={
+              month.key === targetKey
+                ? (e: LayoutChangeEvent) => {
+                    monthY.current = e.nativeEvent.layout.y;
+                    tryJump();
+                  }
+                : undefined
+            }
+          >
             <SectionHeader>{month.label}</SectionHeader>
             <View style={styles.grid}>
               {month.items.map((it) =>
