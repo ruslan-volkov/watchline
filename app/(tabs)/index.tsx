@@ -18,6 +18,7 @@ import { ListRow } from '@/components/ListRow';
 import { NowWatchingCard } from '@/components/NowWatchingCard';
 import { RatingSheet } from '@/components/RatingSheet';
 import { Screen } from '@/components/Screen';
+import { Toast, type ToastState } from '@/components/Toast';
 import { SectionHeader } from '@/components/SectionHeader';
 import { StatusBadge } from '@/components/StatusBadge';
 import { useDensity } from '@/contexts/DensityContext';
@@ -52,7 +53,16 @@ export default function Timeline() {
   const markNext = useMarkNext();
   const { update } = useEntryMutations();
   const [ratingFor, setRatingFor] = useState<{ entryId: string; title: string } | null>(null);
+  const [toast, setToast] = useState<ToastState | null>(null);
   const [backlogOpen, setBacklogOpen] = useState(true);
+
+  const snooze = (entryId: string) => {
+    update.mutate({ entryId, patch: { snoozed: true } });
+    setToast({
+      message: 'Mis en pause',
+      onUndo: () => update.mutate({ entryId, patch: { snoozed: false } }),
+    });
+  };
 
   const markMovieSeen = (entryId: string, title: string) => {
     update.mutate({
@@ -85,7 +95,12 @@ export default function Timeline() {
     for (const e of entries ?? []) {
       const isMovie = e.media.media_type === 'movie';
       // Movie / series premiere from the watchlist, releasing today or later.
-      if (e.status === 'plan_to_watch' && e.media.release_date && daysFromToday(e.media.release_date) >= 0) {
+      if (
+        e.status === 'plan_to_watch' &&
+        !e.snoozed &&
+        e.media.release_date &&
+        daysFromToday(e.media.release_date) >= 0
+      ) {
         items.push({
           key: `entry-${e.id}`,
           date: e.media.release_date,
@@ -145,6 +160,8 @@ export default function Timeline() {
       subtitle: string;
       tmdbId: number;
       mediaType: MediaType;
+      /** The watch entry id — used to snooze (set aside) the title. */
+      entryId: string;
       /** Set for released movies: enables the inline "mark seen" check + rating. */
       movieEntryId?: string;
       /** Set for series rows: enables the inline "mark watched" check. */
@@ -158,7 +175,7 @@ export default function Timeline() {
     }[] = [];
 
     for (const e of entries ?? []) {
-      if (e.status === 'plan_to_watch') {
+      if (e.status === 'plan_to_watch' && !e.snoozed) {
         const rd = e.media.release_date;
         if (!rd || daysFromToday(rd) <= 0) {
           const isMovie = e.media.media_type === 'movie';
@@ -170,6 +187,7 @@ export default function Timeline() {
             subtitle: isMovie ? 'Sorti · à voir' : 'Dispo · à commencer',
             tmdbId: e.media.tmdb_id,
             mediaType: e.media.media_type,
+            entryId: e.id,
             movieEntryId: isMovie ? e.id : undefined,
           });
         }
@@ -191,6 +209,7 @@ export default function Timeline() {
         subtitle: `S${ep.seasonNumber}E${ep.episodeNumber} · ${ep.title}`,
         tmdbId: c.entry.media.tmdb_id,
         mediaType: 'tv',
+        entryId: c.entry.id,
         episode: {
           entryId: c.entry.id,
           seasonNumber: ep.seasonNumber,
@@ -267,6 +286,7 @@ export default function Timeline() {
                           : undefined,
                       }}
                       onOpen={() => openMedia(item.tmdbId, item.mediaType)}
+                      onSnooze={() => snooze(item.entryId)}
                       onMark={
                         item.episode
                           ? () =>
@@ -371,6 +391,7 @@ export default function Timeline() {
         onSubmit={submitRating}
         onSkip={() => setRatingFor(null)}
       />
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
     </Screen>
   );
 }

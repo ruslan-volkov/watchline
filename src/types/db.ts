@@ -191,6 +191,7 @@ export type Database = {
           media_id: string
           notes: string | null
           rating: number | null
+          snoozed: boolean
           started_at: string | null
           status: Database["public"]["Enums"]["watch_status"]
           updated_at: string
@@ -203,6 +204,7 @@ export type Database = {
           media_id: string
           notes?: string | null
           rating?: number | null
+          snoozed?: boolean
           started_at?: string | null
           status?: Database["public"]["Enums"]["watch_status"]
           updated_at?: string
@@ -215,6 +217,7 @@ export type Database = {
           media_id?: string
           notes?: string | null
           rating?: number | null
+          snoozed?: boolean
           started_at?: string | null
           status?: Database["public"]["Enums"]["watch_status"]
           updated_at?: string

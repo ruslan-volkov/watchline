@@ -32,7 +32,10 @@ export function useNowWatching(): { cards: NowWatchingCardData[]; isLoading: boo
   const { data: entries } = useWatchEntries();
 
   const watching = useMemo(
-    () => (entries ?? []).filter((e) => e.status === 'watching' && e.media.media_type === 'tv'),
+    () =>
+      (entries ?? []).filter(
+        (e) => e.status === 'watching' && e.media.media_type === 'tv' && !e.snoozed,
+      ),
     [entries],
   );
 

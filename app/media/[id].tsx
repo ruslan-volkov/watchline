@@ -246,9 +246,25 @@ export default function MediaDetail() {
           <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
         </Pressable>
         {entry ? (
-          <Pressable onPress={confirmRemove} hitSlop={10} accessibilityRole="button">
-            <Ionicons name="trash-outline" size={22} color={colors.textSecondary} />
-          </Pressable>
+          <View style={styles.topActions}>
+            <Pressable
+              onPress={() =>
+                update.mutate({ entryId: entry.id, patch: { snoozed: !entry.snoozed } })
+              }
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel={entry.snoozed ? 'Reprendre' : 'Mettre en pause'}
+            >
+              <Ionicons
+                name={entry.snoozed ? 'play-circle-outline' : 'pause-circle-outline'}
+                size={24}
+                color={entry.snoozed ? colors.accent : colors.textSecondary}
+              />
+            </Pressable>
+            <Pressable onPress={confirmRemove} hitSlop={10} accessibilityRole="button">
+              <Ionicons name="trash-outline" size={22} color={colors.textSecondary} />
+            </Pressable>
+          </View>
         ) : null}
       </View>
 
@@ -503,6 +519,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     height: 44,
   },
+  topActions: { flexDirection: 'row', alignItems: 'center', gap: 18 },
   content: { paddingHorizontal: 20 },
   hero: { flexDirection: 'row', marginBottom: 16 },
   heroText: { flex: 1, marginLeft: 16 },

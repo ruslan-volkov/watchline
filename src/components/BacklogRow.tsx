@@ -1,6 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import ReanimatedSwipeable, {
+  type SwipeableMethods,
+} from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Animated, {
   Easing,
   FadeIn,
@@ -34,6 +37,8 @@ interface Props {
   onOpen: () => void;
   /** Called when the check is tapped (mark the shown episode watched). */
   onMark?: () => void;
+  /** Called when swiped left to "Pause" (set the title aside). */
+  onSnooze?: () => void;
 }
 
 /**
@@ -41,10 +46,11 @@ interface Props {
  * fades to the next episode when data updates. Rows fade out and the list
  * reflows smoothly when a title leaves the backlog.
  */
-export function BacklogRow({ item, onOpen, onMark }: Props) {
+export function BacklogRow({ item, onOpen, onMark, onSnooze }: Props) {
   const { colors } = useTheme();
   const { density } = useDensity();
   const posterW = density === 'compact' ? 40 : 48;
+  const swipeRef = useRef<SwipeableMethods>(null);
 
   // Keyed so the subtitle re-animates when the row advances to the next episode.
   const epKey = item.episode ? `${item.episode.seasonNumber}-${item.episode.episodeNumber}` : 'movie';
@@ -85,18 +91,27 @@ export function BacklogRow({ item, onOpen, onMark }: Props) {
     onMark?.();
   };
 
-  return (
-    <Animated.View
-      layout={LinearTransition.duration(260)}
-      entering={FadeIn.duration(200)}
-      exiting={SlideOutRight.duration(260).easing(Easing.in(Easing.cubic))}
-      style={[styles.wrap, rowStyle]}
+  const renderRightActions = () => (
+    <Pressable
+      onPress={() => {
+        swipeRef.current?.close();
+        onSnooze?.();
+      }}
+      style={[styles.snoozeAction, { backgroundColor: colors.surfaceAlt }]}
+      accessibilityRole="button"
+      accessibilityLabel="Mettre en pause"
     >
-      <Pressable
-        onPress={onOpen}
-        style={({ pressed }) => [styles.row, { opacity: pressed ? 0.6 : 1 }]}
-        accessibilityRole="button"
-      >
+      <Ionicons name="pause" size={20} color={colors.textSecondary} />
+      <Text style={[styles.snoozeText, { color: colors.textSecondary }]}>Pause</Text>
+    </Pressable>
+  );
+
+  const content = (
+    <Pressable
+      onPress={onOpen}
+      style={({ pressed }) => [styles.row, { opacity: pressed ? 0.6 : 1 }]}
+      accessibilityRole="button"
+    >
         <PosterPlaceholder seed={item.seed} title={item.title} posterPath={item.posterPath} width={posterW} />
         <View style={styles.text}>
           <Text numberOfLines={1} style={[styles.title, { color: colors.textPrimary }]}>
@@ -130,7 +145,29 @@ export function BacklogRow({ item, onOpen, onMark }: Props) {
             ) : null}
           </Pressable>
         ) : null}
-      </Pressable>
+    </Pressable>
+  );
+
+  return (
+    <Animated.View
+      layout={LinearTransition.duration(260)}
+      entering={FadeIn.duration(200)}
+      exiting={SlideOutRight.duration(260).easing(Easing.in(Easing.cubic))}
+      style={[styles.wrap, rowStyle]}
+    >
+      {onSnooze ? (
+        <ReanimatedSwipeable
+          ref={swipeRef}
+          renderRightActions={renderRightActions}
+          overshootRight={false}
+          rightThreshold={40}
+          friction={1.6}
+        >
+          {content}
+        </ReanimatedSwipeable>
+      ) : (
+        content
+      )}
     </Animated.View>
   );
 }
@@ -161,4 +198,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  snoozeAction: {
+    width: 78,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+    borderRadius: 12,
+    marginLeft: 6,
+  },
+  snoozeText: { fontSize: 12, fontWeight: '600' },
 });

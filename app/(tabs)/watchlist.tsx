@@ -48,7 +48,7 @@ export default function Watchlist() {
   const items = useMemo(
     () =>
       (entries ?? [])
-        .filter((e) => e.status === 'plan_to_watch')
+        .filter((e) => e.status === 'plan_to_watch' && !e.snoozed)
         .filter((e) => filter === 'all' || e.media.media_type === filter),
     [entries, filter],
   );

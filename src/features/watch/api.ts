@@ -81,7 +81,9 @@ export async function addEntry({ userId, summary, status }: AddParams): Promise<
 
 interface UpdateParams {
   entryId: string;
-  patch: Partial<Pick<WatchEntryRow, 'status' | 'rating' | 'notes' | 'started_at' | 'finished_at'>>;
+  patch: Partial<
+    Pick<WatchEntryRow, 'status' | 'rating' | 'notes' | 'started_at' | 'finished_at' | 'snoozed'>
+  >;
 }
 
 export async function updateEntry({ entryId, patch }: UpdateParams): Promise<EntryWithMedia> {

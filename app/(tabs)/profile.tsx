@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDensity } from '@/contexts/DensityContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useFriends } from '@/features/friends/useFriends';
+import { useWatchEntries } from '@/features/watch/useWatchEntries';
 import type { Density } from '@/theme/tokens';
 import type { Enums } from '@/types/db';
 
@@ -57,6 +58,8 @@ export default function Profile() {
   const { density, setDensity } = useDensity();
   const router = useRouter();
   const { acceptedFriends, incoming } = useFriends();
+  const { data: entries } = useWatchEntries();
+  const pausedCount = (entries ?? []).filter((e) => e.snoozed).length;
 
   const themeOptions: { key: ThemePref; label: string }[] = [
     { key: 'system', label: 'Système' },
@@ -104,6 +107,24 @@ export default function Profile() {
               <Text style={[styles.badgeText, { color: colors.accentText }]}>{incoming.length}</Text>
             </View>
           ) : null}
+          <Ionicons name="chevron-forward" size={20} color={colors.textMeta} />
+        </Pressable>
+
+        <SectionHeader>Ma liste</SectionHeader>
+        <Pressable
+          onPress={() => router.push('/paused')}
+          style={[styles.soon, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          accessibilityRole="button"
+        >
+          <Ionicons name="pause-circle-outline" size={22} color={colors.textSecondary} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.soonTitle, { color: colors.textPrimary }]}>
+              {pausedCount > 0 ? `${pausedCount} en pause` : 'En pause'}
+            </Text>
+            <Text style={[styles.soonText, { color: colors.textSecondary }]}>
+              Les titres que tu as mis de côté.
+            </Text>
+          </View>
           <Ionicons name="chevron-forward" size={20} color={colors.textMeta} />
         </Pressable>
 

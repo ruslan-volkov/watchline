@@ -26,7 +26,7 @@ export function useEntryMutations() {
     mutationFn: (vars: {
       entryId: string;
       patch: Partial<
-        Pick<WatchEntryRow, 'status' | 'rating' | 'notes' | 'started_at' | 'finished_at'>
+        Pick<WatchEntryRow, 'status' | 'rating' | 'notes' | 'started_at' | 'finished_at' | 'snoozed'>
       >;
     }) => updateEntry(vars),
     onSuccess: invalidate,
