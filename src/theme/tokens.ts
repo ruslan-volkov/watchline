@@ -31,7 +31,7 @@ const light: ColorTokens = {
   textPrimary: '#1F1B16',
   textSecondary: '#5E574E',
   textMeta: '#9A9187',
-  accent: '#6C5CE7',
+  accent: '#3E7350',
   accentText: '#FFFFFF',
   border: '#ECE7E0',
   overlay: 'rgba(0,0,0,0.45)',
@@ -48,7 +48,7 @@ const dark: ColorTokens = {
   textPrimary: '#F5F1EB',
   textSecondary: '#B8B0A6',
   textMeta: '#7E766C',
-  accent: '#9A8CFF',
+  accent: '#8FC7A1',
   accentText: '#141210',
   border: '#332E29',
   overlay: 'rgba(0,0,0,0.6)',
@@ -71,12 +71,12 @@ export interface StatusColor {
 
 export const statusColors: Record<ColorScheme, Record<WatchStatus, StatusColor>> = {
   light: {
-    plan_to_watch: { bg: '#E8E4FB', fg: '#5B4BD1' },
+    plan_to_watch: { bg: '#E2EAF4', fg: '#3D6491' },
     watching: { bg: '#DDF0E6', fg: '#2F7D52' },
     completed: { bg: '#F1E7DA', fg: '#8A6A3E' },
   },
   dark: {
-    plan_to_watch: { bg: '#2E2952', fg: '#B7ADFF' },
+    plan_to_watch: { bg: '#24303F', fg: '#93B7DC' },
     watching: { bg: '#1F3A2C', fg: '#7FD1A0' },
     completed: { bg: '#3A3122', fg: '#D6B888' },
   },

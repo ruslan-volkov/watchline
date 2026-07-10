@@ -14,10 +14,8 @@
     "android": {
       "package": "com.rvolkov.watchline",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#7FA487",
+        "foregroundImage": "./assets/adaptive-icon.png"
       },
       "predictiveBackGestureEnabled": false
     },
@@ -30,13 +28,25 @@
       [
         "expo-notifications",
         {
-          "color": "#6C5CE7"
+          "color": "#7FA487"
         }
       ],
       [
         "expo-image-picker",
         {
           "photosPermission": "Watchline utilise tes photos pour choisir un avatar."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-light.png",
+          "resizeMode": "cover",
+          "backgroundColor": "#EEF3EE",
+          "dark": {
+            "image": "./assets/splash-dark.png",
+            "backgroundColor": "#1E2A20"
+          }
         }
       ]
     ],

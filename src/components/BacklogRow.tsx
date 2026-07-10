@@ -5,9 +5,9 @@ import Animated, {
   Easing,
   FadeIn,
   FadeInDown,
-  FadeOut,
   interpolateColor,
   LinearTransition,
+  SlideOutRight,
   useAnimatedStyle,
   useSharedValue,
   withSequence,
@@ -89,7 +89,7 @@ export function BacklogRow({ item, onOpen, onMark }: Props) {
     <Animated.View
       layout={LinearTransition.duration(260)}
       entering={FadeIn.duration(200)}
-      exiting={FadeOut.duration(160)}
+      exiting={SlideOutRight.duration(260).easing(Easing.in(Easing.cubic))}
       style={[styles.wrap, rowStyle]}
     >
       <Pressable
