@@ -256,6 +256,44 @@ export default function Timeline() {
             />
           }
         >
+          <View style={[styles.viewToggle, { backgroundColor: colors.surfaceAlt }]}>
+            {(['list', 'calendar'] as const).map((v) => {
+              const active = upcomingView === v;
+              return (
+                <Pressable
+                  key={v}
+                  onPress={() => setUpcomingView(v)}
+                  style={[styles.viewToggleItem, active && { backgroundColor: colors.surface }]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Text
+                    style={[
+                      styles.viewToggleText,
+                      { color: active ? colors.textPrimary : colors.textSecondary },
+                    ]}
+                  >
+                    {v === 'list' ? 'Liste' : 'Calendrier'}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {upcomingView === 'calendar' ? (
+            upcoming.length > 0 ? (
+              <UpcomingCalendar
+                items={upcoming}
+                onOpen={openMedia}
+                screenPadding={spacing.screenPadding}
+              />
+            ) : (
+              <Text style={[styles.quiet, { color: colors.textMeta }]}>
+                Rien à venir dans ton suivi pour l’instant.
+              </Text>
+            )
+          ) : (
+            <>
           {backlog.length > 0 ? (
             <View>
               <Pressable
@@ -311,58 +349,22 @@ export default function Timeline() {
             </View>
           ) : null}
 
-          {upcoming.length > 0 ? (
-            <View>
-              <View style={[styles.viewToggle, { backgroundColor: colors.surfaceAlt }]}>
-                {(['list', 'calendar'] as const).map((v) => {
-                  const active = upcomingView === v;
-                  return (
-                    <Pressable
-                      key={v}
-                      onPress={() => setUpcomingView(v)}
-                      style={[styles.viewToggleItem, active && { backgroundColor: colors.surface }]}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: active }}
-                    >
-                      <Text
-                        style={[
-                          styles.viewToggleText,
-                          { color: active ? colors.textPrimary : colors.textSecondary },
-                        ]}
-                      >
-                        {v === 'list' ? 'Liste' : 'Calendrier'}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-
-              {upcomingView === 'list' ? (
-                grouped.map(([bucket, items]) => (
-                  <View key={bucket}>
-                    <SectionHeader>{bucket}</SectionHeader>
-                    {items.map((item) => (
-                      <ListRow
-                        key={item.key}
-                        seed={item.seed}
-                        title={item.title}
-                        posterPath={item.posterPath}
-                        subtitle={item.subtitle}
-                        onPress={() => openMedia(item.tmdbId, item.mediaType)}
-                        right={item.isMovie ? <StatusBadge status="plan_to_watch" /> : undefined}
-                      />
-                    ))}
-                  </View>
-                ))
-              ) : (
-                <UpcomingCalendar
-                  items={upcoming}
-                  onOpen={openMedia}
-                  screenPadding={spacing.screenPadding}
+          {grouped.map(([bucket, items]) => (
+            <View key={bucket}>
+              <SectionHeader>{bucket}</SectionHeader>
+              {items.map((item) => (
+                <ListRow
+                  key={item.key}
+                  seed={item.seed}
+                  title={item.title}
+                  posterPath={item.posterPath}
+                  subtitle={item.subtitle}
+                  onPress={() => openMedia(item.tmdbId, item.mediaType)}
+                  right={item.isMovie ? <StatusBadge status="plan_to_watch" /> : undefined}
                 />
-              )}
+              ))}
             </View>
-          ) : null}
+          ))}
 
           {backlog.length === 0 && grouped.length === 0 && cards.length === 0 ? (
             <Text style={[styles.quiet, { color: colors.textMeta }]}>
@@ -420,6 +422,8 @@ export default function Timeline() {
               ) : null}
             </View>
           ) : null}
+            </>
+          )}
         </ScrollView>
       )}
       <Fab onPress={() => router.push('/search')} accessibilityLabel="Ajouter un titre" />
@@ -443,8 +447,8 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     borderRadius: 10,
     padding: 3,
-    marginTop: 18,
-    marginBottom: 6,
+    marginTop: 4,
+    marginBottom: 10,
   },
   viewToggleItem: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8 },
   viewToggleText: { fontSize: 13, fontWeight: '600' },
