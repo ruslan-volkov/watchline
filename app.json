@@ -14,7 +14,7 @@
     "android": {
       "package": "com.rvolkov.watchline",
       "adaptiveIcon": {
-        "backgroundColor": "#7FA487",
+        "backgroundColor": "#B4577A",
         "foregroundImage": "./assets/adaptive-icon.png"
       },
       "predictiveBackGestureEnabled": false
@@ -28,7 +28,7 @@
       [
         "expo-notifications",
         {
-          "color": "#7FA487"
+          "color": "#B4577A"
         }
       ],
       [
@@ -42,10 +42,10 @@
         {
           "image": "./assets/splash-light.png",
           "resizeMode": "cover",
-          "backgroundColor": "#EEF3EE",
+          "backgroundColor": "#F6EEF0",
           "dark": {
             "image": "./assets/splash-dark.png",
-            "backgroundColor": "#1E2A20"
+            "backgroundColor": "#241620"
           }
         }
       ]
