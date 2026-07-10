@@ -21,7 +21,7 @@ import { Screen } from '@/components/Screen';
 import { Toast, type ToastState } from '@/components/Toast';
 import { SectionHeader } from '@/components/SectionHeader';
 import { StatusBadge } from '@/components/StatusBadge';
-import { UpcomingCalendar } from '@/components/UpcomingCalendar';
+import { UpcomingCalendar, type CalendarItem } from '@/components/UpcomingCalendar';
 import { useDensity } from '@/contexts/DensityContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useMarkNext } from '@/features/episodes/useMarkNext';
@@ -224,6 +224,41 @@ export default function Timeline() {
     return items;
   }, [entries, cards]);
 
+  // Calendar data: every tracked title at its release date (past + future),
+  // plus upcoming episodes of series in progress.
+  const calendarItems = useMemo<CalendarItem[]>(() => {
+    const items: CalendarItem[] = [];
+    for (const c of cards) {
+      const ep = c.nextEpisode;
+      if (ep?.airDate && daysFromToday(ep.airDate) > 0) {
+        items.push({
+          key: `ce-${c.entry.id}`,
+          date: ep.airDate,
+          seed: `${c.entry.media.tmdb_id}`,
+          title: c.entry.media.title,
+          posterPath: c.entry.media.poster_path,
+          subtitle: `S${ep.seasonNumber}E${ep.episodeNumber}`,
+          tmdbId: c.entry.media.tmdb_id,
+          mediaType: 'tv',
+        });
+      }
+    }
+    for (const e of entries ?? []) {
+      if (e.snoozed || !e.media.release_date) continue;
+      items.push({
+        key: `cr-${e.id}`,
+        date: e.media.release_date,
+        seed: `${e.media.tmdb_id}`,
+        title: e.media.title,
+        posterPath: e.media.poster_path,
+        subtitle: e.media.media_type === 'movie' ? 'Film' : 'Série',
+        tmdbId: e.media.tmdb_id,
+        mediaType: e.media.media_type,
+      });
+    }
+    return items;
+  }, [entries, cards]);
+
   const hasContent = (entries?.length ?? 0) > 0;
   const cardWidth = 118;
 
@@ -281,15 +316,15 @@ export default function Timeline() {
           </View>
 
           {upcomingView === 'calendar' ? (
-            upcoming.length > 0 ? (
+            calendarItems.length > 0 ? (
               <UpcomingCalendar
-                items={upcoming}
+                items={calendarItems}
                 onOpen={openMedia}
                 screenPadding={spacing.screenPadding}
               />
             ) : (
               <Text style={[styles.quiet, { color: colors.textMeta }]}>
-                Rien à venir dans ton suivi pour l’instant.
+                Rien dans ton calendrier pour l’instant.
               </Text>
             )
           ) : (

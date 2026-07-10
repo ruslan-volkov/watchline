@@ -23,6 +23,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useMediaSearch, useTrending } from '@/features/media/useMediaSearch';
 import { useEntryMutations } from '@/features/watch/useEntryMutations';
 import { useWatchEntries } from '@/features/watch/useWatchEntries';
+import { tapHaptic } from '@/lib/haptics';
 import { statusLabels } from '@/theme/tokens';
 import type { MediaSummary, WatchStatus } from '@/media/types';
 
@@ -65,16 +66,11 @@ export default function Search() {
     try {
       const entry = await add.mutateAsync({ summary, status });
       setSelected(null);
+      tapHaptic();
+      // Stay in search so you can keep adding — the result row now shows its
+      // status badge. Passing to "vu" still offers the optional rating.
       if (status === 'completed') {
-        // Passing to "vu" triggers optional rating.
         setRatingFor({ entryId: entry.id, title: summary.title });
-      } else if (summary.mediaType === 'tv' && status === 'watching') {
-        // Adding a series "en cours": open its sheet so you can tick what you've
-        // already watched (per episode or whole seasons).
-        router.back();
-        router.push({ pathname: '/media/[id]', params: { id: String(summary.tmdbId), type: 'tv' } });
-      } else {
-        router.back();
       }
     } finally {
       setBusy(false);
@@ -84,7 +80,6 @@ export default function Search() {
   const submitRating = async (rating: number | null, notes: string | null) => {
     if (ratingFor) await update.mutateAsync({ entryId: ratingFor.entryId, patch: { rating, notes } });
     setRatingFor(null);
-    router.back();
   };
 
   const listData = useMemo(
@@ -200,10 +195,7 @@ export default function Search() {
         visible={!!ratingFor}
         title={ratingFor?.title ?? ''}
         onSubmit={submitRating}
-        onSkip={() => {
-          setRatingFor(null);
-          router.back();
-        }}
+        onSkip={() => setRatingFor(null)}
       />
     </SafeAreaView>
   );
