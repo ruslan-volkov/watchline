@@ -73,15 +73,24 @@ export function UpcomingCalendar({ items, onOpen, screenPadding, scrollRef }: Pr
     [],
   );
 
+  // Coarser grouping the further back we go: current year + future are grouped
+  // by month, past years are grouped by year.
   const months = useMemo(() => {
-    const map = new Map<string, CalendarItem[]>();
+    const curYear = new Date().getFullYear();
+    const map = new Map<string, { key: string; label: string; items: CalendarItem[] }>();
     for (const it of items) {
-      const key = it.date.slice(0, 7);
-      (map.get(key) ?? map.set(key, []).get(key)!).push(it);
+      const year = Number(it.date.slice(0, 4));
+      const monthly = year >= curYear;
+      const key = monthly ? it.date.slice(0, 7) : String(year);
+      const label = monthly ? monthYearLabel(it.date) : String(year);
+      let group = map.get(key);
+      if (!group) {
+        group = { key, label, items: [] };
+        map.set(key, group);
+      }
+      group.items.push(it);
     }
-    return [...map.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([key, list]) => ({ key, label: monthYearLabel(list[0].date), items: list }));
+    return [...map.values()].sort((a, b) => a.key.localeCompare(b.key));
   }, [items]);
 
   const now = new Date();
