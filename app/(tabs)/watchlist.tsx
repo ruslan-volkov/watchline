@@ -18,6 +18,7 @@ import { useDensity } from '@/contexts/DensityContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useWatchEntries } from '@/features/watch/useWatchEntries';
 import { usePullRefresh } from '@/hooks/usePullRefresh';
+import { useTabBarClearance } from '@/theme/layout';
 import { daysFromToday, releaseSubtitle } from '@/utils/timeGrouping';
 import type { EntryWithMedia } from '@/features/watch/api';
 import type { MediaType } from '@/media/types';
@@ -44,6 +45,7 @@ export default function Watchlist() {
   const { data: entries, isLoading } = useWatchEntries();
   const [filter, setFilter] = useState<Filter>('all');
   const { refreshing, onRefresh } = usePullRefresh([['watch_entries']]);
+  const tabBarClearance = useTabBarClearance();
 
   const items = useMemo(
     () =>
@@ -100,7 +102,7 @@ export default function Watchlist() {
         <FlatList
           data={items}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingHorizontal: spacing.screenPadding, paddingBottom: 24 }}
+          contentContainerStyle={{ paddingHorizontal: spacing.screenPadding, paddingBottom: tabBarClearance }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

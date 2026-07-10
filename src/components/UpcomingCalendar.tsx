@@ -2,7 +2,6 @@ import { useMemo, useRef, useState, type RefObject } from 'react';
 import {
   Dimensions,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -34,7 +33,15 @@ interface Props {
   /** Horizontal padding of the parent, to compute poster widths. */
   screenPadding: number;
   /** Parent scroll view — used to jump to the current month on open. */
-  scrollRef?: RefObject<ScrollView | null>;
+  scrollRef?: RefObject<ScrollLike | null>;
+  /** Called right before the programmatic jump, so the parent can ignore the
+   *  resulting scroll event (e.g. keep a floating header visible). */
+  onBeforeJump?: () => void;
+}
+
+/** Minimal scroll surface the calendar needs — works for RN and Animated ScrollView. */
+interface ScrollLike {
+  scrollTo: (opts: { x?: number; y?: number; animated?: boolean }) => void;
 }
 
 const MIN_COLS = 1;
@@ -43,7 +50,7 @@ const GAP = 10;
 
 /** Vertical "photo library" style timeline: releases grouped by month, with a
  *  pinch gesture to change grid density (1 = one row per title, up to 5). */
-export function UpcomingCalendar({ items, onOpen, screenPadding, scrollRef }: Props) {
+export function UpcomingCalendar({ items, onOpen, screenPadding, scrollRef, onBeforeJump }: Props) {
   const { colors } = useTheme();
   const [columns, setColumns] = useState(3);
 
@@ -56,6 +63,7 @@ export function UpcomingCalendar({ items, onOpen, screenPadding, scrollRef }: Pr
     if (jumped.current || rootY.current == null || monthY.current == null || !scrollRef?.current) {
       return;
     }
+    onBeforeJump?.();
     scrollRef.current.scrollTo({ y: Math.max(0, rootY.current + monthY.current - 12), animated: false });
     jumped.current = true;
   };

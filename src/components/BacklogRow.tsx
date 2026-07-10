@@ -8,9 +8,9 @@ import Animated, {
   Easing,
   FadeIn,
   FadeInDown,
+  FadeOut,
   interpolateColor,
   LinearTransition,
-  SlideOutRight,
   useAnimatedStyle,
   useSharedValue,
   withSequence,
@@ -152,7 +152,7 @@ export function BacklogRow({ item, onOpen, onMark, onSnooze }: Props) {
     <Animated.View
       layout={LinearTransition.duration(260)}
       entering={FadeIn.duration(200)}
-      exiting={SlideOutRight.duration(260).easing(Easing.in(Easing.cubic))}
+      exiting={FadeOut.duration(160)}
       style={[styles.wrap, rowStyle]}
     >
       {onSnooze ? (

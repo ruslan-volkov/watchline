@@ -18,6 +18,7 @@ import { ListRow } from '@/components/ListRow';
 import { RatingSheet } from '@/components/RatingSheet';
 import { SectionHeader } from '@/components/SectionHeader';
 import { StatusBadge } from '@/components/StatusBadge';
+import { Toast, type ToastState } from '@/components/Toast';
 import { useDensity } from '@/contexts/DensityContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useMediaSearch, useTrending } from '@/features/media/useMediaSearch';
@@ -42,12 +43,13 @@ export default function Search() {
   const { colors } = useTheme();
   const { spacing } = useDensity();
   const router = useRouter();
-  const { add, update } = useEntryMutations();
+  const { add, update, remove } = useEntryMutations();
 
   const { data: entries } = useWatchEntries();
-  const trackedStatus = useMemo(() => {
-    const map = new Map<string, WatchStatus>();
-    for (const e of entries ?? []) map.set(`${e.media.media_type}-${e.media.tmdb_id}`, e.status);
+  const trackedEntry = useMemo(() => {
+    const map = new Map<string, { id: string; status: WatchStatus }>();
+    for (const e of entries ?? [])
+      map.set(`${e.media.media_type}-${e.media.tmdb_id}`, { id: e.id, status: e.status });
     return map;
   }, [entries]);
 
@@ -60,6 +62,7 @@ export default function Search() {
   const [selected, setSelected] = useState<MediaSummary | null>(null);
   const [ratingFor, setRatingFor] = useState<{ entryId: string; title: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [toast, setToast] = useState<ToastState | null>(null);
 
   const chooseStatus = async (summary: MediaSummary, status: WatchStatus) => {
     setBusy(true);
@@ -82,6 +85,23 @@ export default function Search() {
     setRatingFor(null);
   };
 
+  // Tapping a result row opens its detail sheet; adding is reserved for the "+".
+  const openMedia = (item: MediaSummary) => {
+    Keyboard.dismiss();
+    router.push({ pathname: '/media/[id]', params: { id: String(item.tmdbId), type: item.mediaType } });
+  };
+
+  // Re-tapping the status tag removes the entry, with an "Annuler" toast that
+  // re-adds it — an easy fix for a mis-add.
+  const removeEntry = (item: MediaSummary, status: WatchStatus, entryId: string) => {
+    tapHaptic();
+    remove.mutate(entryId);
+    setToast({
+      message: 'Retiré de ton suivi',
+      onUndo: () => add.mutate({ summary: item, status }),
+    });
+  };
+
   const listData = useMemo(
     () => (showTrending ? trending ?? [] : results ?? []),
     [showTrending, trending, results],
@@ -98,7 +118,6 @@ export default function Search() {
             onChangeText={setQuery}
             placeholder="Rechercher un film ou une série"
             placeholderTextColor={colors.textMeta}
-            autoFocus
             style={[styles.input, { color: colors.textPrimary }]}
             returnKeyType="search"
           />
@@ -134,22 +153,33 @@ export default function Search() {
           renderItem={({ item }) => {
             const typeLabel = item.mediaType === 'tv' ? 'Série' : 'Film';
             const year = item.releaseDate ? item.releaseDate.slice(0, 4) : null;
-            const tracked = trackedStatus.get(`${item.mediaType}-${item.tmdbId}`);
+            const tracked = trackedEntry.get(`${item.mediaType}-${item.tmdbId}`);
             return (
               <ListRow
                 seed={`${item.tmdbId}`}
                 title={item.title}
                 posterPath={item.posterPath}
                 subtitle={year ? `${typeLabel} · ${year}` : typeLabel}
-                onPress={() => {
-                  Keyboard.dismiss();
-                  setSelected(item);
-                }}
+                onPress={() => openMedia(item)}
                 right={
                   tracked ? (
-                    <StatusBadge status={tracked} />
+                    <Pressable
+                      onPress={() => removeEntry(item, tracked.status, tracked.id)}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel="Retirer de mon suivi"
+                    >
+                      <StatusBadge status={tracked.status} />
+                    </Pressable>
                   ) : (
-                    <Ionicons name="add-circle-outline" size={24} color={colors.accent} />
+                    <Pressable
+                      onPress={() => setSelected(item)}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel="Ajouter"
+                    >
+                      <Ionicons name="add-circle-outline" size={24} color={colors.accent} />
+                    </Pressable>
                   )
                 }
               />
@@ -197,6 +227,7 @@ export default function Search() {
         onSubmit={submitRating}
         onSkip={() => setRatingFor(null)}
       />
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
     </SafeAreaView>
   );
 }

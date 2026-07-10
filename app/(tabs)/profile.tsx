@@ -10,6 +10,7 @@ import { useDensity } from '@/contexts/DensityContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useFriends } from '@/features/friends/useFriends';
 import { useWatchEntries } from '@/features/watch/useWatchEntries';
+import { useTabBarClearance } from '@/theme/layout';
 import type { Density } from '@/theme/tokens';
 import type { Enums } from '@/types/db';
 
@@ -60,6 +61,7 @@ export default function Profile() {
   const { acceptedFriends, incoming } = useFriends();
   const { data: entries } = useWatchEntries();
   const pausedCount = (entries ?? []).filter((e) => e.snoozed).length;
+  const tabBarClearance = useTabBarClearance();
 
   const themeOptions: { key: ThemePref; label: string }[] = [
     { key: 'system', label: 'Système' },
@@ -82,7 +84,7 @@ export default function Profile() {
       }
     >
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: tabBarClearance }}
         showsVerticalScrollIndicator={false}
       >
         <SectionHeader>Amis</SectionHeader>

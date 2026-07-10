@@ -444,23 +444,6 @@ export default function MediaDetail() {
                         accessibilityRole="checkbox"
                         accessibilityState={{ checked: isWatched, disabled: unaired }}
                       >
-                        {unaired ? (
-                          <View style={[styles.checkbox, { borderColor: 'transparent' }]}>
-                            <Ionicons name="time-outline" size={18} color={colors.textMeta} />
-                          </View>
-                        ) : (
-                          <View
-                            style={[
-                              styles.checkbox,
-                              {
-                                borderColor: isWatched ? accent : colors.border,
-                                backgroundColor: isWatched ? accent : 'transparent',
-                              },
-                            ]}
-                          >
-                            {isWatched ? <Ionicons name="checkmark" size={15} color="#fff" /> : null}
-                          </View>
-                        )}
                         <Text
                           style={[
                             styles.episodeText,
@@ -481,6 +464,23 @@ export default function MediaDetail() {
                             {airDateLabel(ep.airDate)}
                           </Text>
                         ) : null}
+                        {unaired ? (
+                          <View style={[styles.checkbox, { borderColor: 'transparent' }]}>
+                            <Ionicons name="time-outline" size={18} color={colors.textMeta} />
+                          </View>
+                        ) : (
+                          <View
+                            style={[
+                              styles.checkbox,
+                              {
+                                borderColor: isWatched ? accent : colors.border,
+                                backgroundColor: isWatched ? accent : 'transparent',
+                              },
+                            ]}
+                          >
+                            {isWatched ? <Ionicons name="checkmark" size={15} color="#fff" /> : null}
+                          </View>
+                        )}
                       </Pressable>
                     );
                   })}
@@ -593,7 +593,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginLeft: 12,
   },
   episodeText: { flex: 1, fontSize: 15, fontWeight: '500' },
   episodeDate: { fontSize: 12, fontWeight: '600', marginLeft: 8 },

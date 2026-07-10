@@ -5,17 +5,17 @@ import {
   ActivityIndicator,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { BacklogRow } from '@/components/BacklogRow';
+import { Collapsible } from '@/components/Collapsible';
 import { EmptyState } from '@/components/EmptyState';
 import { Fab } from '@/components/Fab';
 import { ListRow } from '@/components/ListRow';
-import { NowWatchingCard } from '@/components/NowWatchingCard';
 import { RatingSheet } from '@/components/RatingSheet';
 import { Screen } from '@/components/Screen';
 import { Toast, type ToastState } from '@/components/Toast';
@@ -29,8 +29,12 @@ import { useEntryMutations } from '@/features/watch/useEntryMutations';
 import { useNowWatching } from '@/features/watch/useNowWatching';
 import { useWatchEntries } from '@/features/watch/useWatchEntries';
 import { usePullRefresh } from '@/hooks/usePullRefresh';
+import { useTabBarClearance } from '@/theme/layout';
 import { bucketRank, daysFromToday, proximityBucket, releaseSubtitle } from '@/utils/timeGrouping';
 import type { MediaType } from '@/media/types';
+
+/** Height reserved for the floating Liste/Calendrier toggle (drives scroll padding). */
+const TOGGLE_BAR_HEIGHT = 50;
 
 interface UpcomingItem {
   key: string;
@@ -55,9 +59,9 @@ export default function Timeline() {
   const { update } = useEntryMutations();
   const [ratingFor, setRatingFor] = useState<{ entryId: string; title: string } | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
-  const [backlogOpen, setBacklogOpen] = useState(true);
+  const [backlogOpen, setBacklogOpen] = useState(false);
   const [upcomingView, setUpcomingView] = useState<'list' | 'calendar'>('list');
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<Animated.ScrollView>(null);
 
   const snooze = (entryId: string) => {
     update.mutate({ entryId, patch: { snoozed: true } });
@@ -79,16 +83,7 @@ export default function Timeline() {
     setRatingFor(null);
   };
   const { refreshing, onRefresh } = usePullRefresh([['watch_entries'], ['progress_all']]);
-
-  // "En cours" is open by default, but auto-collapses when its header would fall
-  // below the fold (i.e. the content above already fills the screen). A manual
-  // tap overrides the auto behavior.
-  const [nowWatchingOverride, setNowWatchingOverride] = useState<boolean | null>(null);
-  const [viewportH, setViewportH] = useState(0);
-  const [nowWatchingY, setNowWatchingY] = useState<number | null>(null);
-  const nowWatchingAutoOpen =
-    nowWatchingY == null || viewportH === 0 ? true : nowWatchingY < viewportH - 60;
-  const nowWatchingOpen = nowWatchingOverride ?? nowWatchingAutoOpen;
+  const tabBarClearance = useTabBarClearance();
 
   const openMedia = (tmdbId: number, type: MediaType) =>
     router.push({ pathname: '/media/[id]', params: { id: String(tmdbId), type } });
@@ -229,9 +224,11 @@ export default function Timeline() {
   // plus upcoming episodes of series in progress.
   const calendarItems = useMemo<CalendarItem[]>(() => {
     const items: CalendarItem[] = [];
+    // Watching series: only the next episode to watch (even if it aired a few
+    // days ago and is still unseen) — not the whole unwatched tail.
     for (const c of cards) {
       const ep = c.nextEpisode;
-      if (ep?.airDate && daysFromToday(ep.airDate) > 0) {
+      if (ep?.airDate) {
         items.push({
           key: `ce-${c.entry.id}`,
           date: ep.airDate,
@@ -245,7 +242,10 @@ export default function Timeline() {
       }
     }
     for (const e of entries ?? []) {
-      if (e.snoozed || !e.media.release_date) continue;
+      // Skip snoozed, already-watched, and undated titles.
+      if (e.snoozed || e.status === 'completed' || !e.media.release_date) continue;
+      // Watching series are represented by their episodes above, not the premiere.
+      if (e.media.media_type === 'tv' && e.status === 'watching') continue;
       items.push({
         key: `cr-${e.id}`,
         date: e.media.release_date,
@@ -261,7 +261,6 @@ export default function Timeline() {
   }, [entries, cards]);
 
   const hasContent = (entries?.length ?? 0) > 0;
-  const cardWidth = 118;
 
   return (
     <Screen padded={false}>
@@ -280,11 +279,40 @@ export default function Timeline() {
           />
         )
       ) : (
-        <ScrollView
+        <>
+        <View pointerEvents="box-none" style={[styles.toggleBar, { bottom: tabBarClearance + 68 }]}>
+          <View style={styles.viewToggle}>
+            {(['list', 'calendar'] as const).map((v) => {
+              const active = upcomingView === v;
+              return (
+                <Pressable
+                  key={v}
+                  onPress={() => setUpcomingView(v)}
+                  style={[
+                    styles.viewToggleItem,
+                    { backgroundColor: active ? colors.accent : colors.surface },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={v === 'list' ? 'Vue liste' : 'Vue calendrier'}
+                  accessibilityState={{ selected: active }}
+                >
+                  <Ionicons
+                    name={v === 'list' ? 'list' : 'calendar'}
+                    size={22}
+                    color={active ? colors.accentText : colors.textSecondary}
+                  />
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+        <Animated.ScrollView
           ref={scrollRef}
-          contentContainerStyle={{ paddingHorizontal: spacing.screenPadding, paddingBottom: 32 }}
+          contentContainerStyle={{
+            paddingHorizontal: spacing.screenPadding,
+            paddingBottom: tabBarClearance + TOGGLE_BAR_HEIGHT,
+          }}
           showsVerticalScrollIndicator={false}
-          onLayout={(e) => setViewportH(e.nativeEvent.layout.height)}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -293,30 +321,6 @@ export default function Timeline() {
             />
           }
         >
-          <View style={[styles.viewToggle, { backgroundColor: colors.surfaceAlt }]}>
-            {(['list', 'calendar'] as const).map((v) => {
-              const active = upcomingView === v;
-              return (
-                <Pressable
-                  key={v}
-                  onPress={() => setUpcomingView(v)}
-                  style={[styles.viewToggleItem, active && { backgroundColor: colors.surface }]}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                >
-                  <Text
-                    style={[
-                      styles.viewToggleText,
-                      { color: active ? colors.textPrimary : colors.textSecondary },
-                    ]}
-                  >
-                    {v === 'list' ? 'Liste' : 'Calendrier'}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-
           {upcomingView === 'calendar' ? (
             calendarItems.length > 0 ? (
               <UpcomingCalendar
@@ -346,44 +350,44 @@ export default function Timeline() {
                   color={colors.textMeta}
                 />
               </Pressable>
-              {backlogOpen
-                ? backlog.map((item) => (
-                    <BacklogRow
-                      key={item.key}
-                      item={{
-                        key: item.key,
-                        seed: item.seed,
-                        title: item.title,
-                        posterPath: item.posterPath,
-                        subtitle: item.subtitle,
-                        episode: item.episode
-                          ? {
-                              seasonNumber: item.episode.seasonNumber,
-                              episodeNumber: item.episode.episodeNumber,
-                            }
-                          : undefined,
-                      }}
-                      onOpen={() => openMedia(item.tmdbId, item.mediaType)}
-                      onSnooze={() => snooze(item.entryId)}
-                      onMark={
-                        item.episode
-                          ? () =>
-                              markNext.mutate({
-                                entryId: item.episode!.entryId,
-                                episode: {
-                                  seasonNumber: item.episode!.seasonNumber,
-                                  episodeNumber: item.episode!.episodeNumber,
-                                },
-                                watchedBefore: item.episode!.watched,
-                                total: item.episode!.total,
-                              })
-                          : item.movieEntryId
-                            ? () => markMovieSeen(item.movieEntryId!, item.title)
-                            : undefined
-                      }
-                    />
-                  ))
-                : null}
+              <Collapsible open={backlogOpen}>
+                {backlog.map((item) => (
+                  <BacklogRow
+                    key={item.key}
+                    item={{
+                      key: item.key,
+                      seed: item.seed,
+                      title: item.title,
+                      posterPath: item.posterPath,
+                      subtitle: item.subtitle,
+                      episode: item.episode
+                        ? {
+                            seasonNumber: item.episode.seasonNumber,
+                            episodeNumber: item.episode.episodeNumber,
+                          }
+                        : undefined,
+                    }}
+                    onOpen={() => openMedia(item.tmdbId, item.mediaType)}
+                    onSnooze={() => snooze(item.entryId)}
+                    onMark={
+                      item.episode
+                        ? () =>
+                            markNext.mutate({
+                              entryId: item.episode!.entryId,
+                              episode: {
+                                seasonNumber: item.episode!.seasonNumber,
+                                episodeNumber: item.episode!.episodeNumber,
+                              },
+                              watchedBefore: item.episode!.watched,
+                              total: item.episode!.total,
+                            })
+                        : item.movieEntryId
+                          ? () => markMovieSeen(item.movieEntryId!, item.title)
+                          : undefined
+                    }
+                  />
+                ))}
+              </Collapsible>
             </View>
           ) : null}
 
@@ -404,65 +408,15 @@ export default function Timeline() {
             </View>
           ))}
 
-          {backlog.length === 0 && grouped.length === 0 && cards.length === 0 ? (
+          {backlog.length === 0 && grouped.length === 0 ? (
             <Text style={[styles.quiet, { color: colors.textMeta }]}>
               Rien à rattraper ni à l’horizon pour l’instant.
             </Text>
           ) : null}
-
-          {cards.length > 0 ? (
-            <View onLayout={(e) => setNowWatchingY(e.nativeEvent.layout.y)}>
-              <Pressable
-                onPress={() => setNowWatchingOverride(!nowWatchingOpen)}
-                style={styles.collapseHeader}
-                accessibilityRole="button"
-              >
-                <SectionHeader>{`En cours · ${cards.length}`}</SectionHeader>
-                <Ionicons
-                  name={nowWatchingOpen ? 'chevron-up' : 'chevron-down'}
-                  size={18}
-                  color={colors.textMeta}
-                />
-              </Pressable>
-              {nowWatchingOpen ? (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 14, paddingVertical: 4 }}
-              >
-                {cards.map((c) => (
-                  <NowWatchingCard
-                    key={c.entry.id}
-                    seed={`${c.entry.media.tmdb_id}`}
-                    title={c.entry.media.title}
-                    posterPath={c.entry.media.poster_path}
-                    subtitle={c.subtitle}
-                    progress={c.progress}
-                    width={cardWidth}
-                    onPress={() => openMedia(c.entry.media.tmdb_id, 'tv')}
-                    onCheck={
-                      c.nextEpisode
-                        ? () =>
-                            markNext.mutate({
-                              entryId: c.entry.id,
-                              episode: {
-                                seasonNumber: c.nextEpisode!.seasonNumber,
-                                episodeNumber: c.nextEpisode!.episodeNumber,
-                              },
-                              watchedBefore: c.watched,
-                              total: c.total,
-                            })
-                        : undefined
-                    }
-                  />
-                ))}
-              </ScrollView>
-              ) : null}
-            </View>
-          ) : null}
             </>
           )}
-        </ScrollView>
+        </Animated.ScrollView>
+        </>
       )}
       <Fab onPress={() => router.push('/search')} accessibilityLabel="Ajouter un titre" />
       <RatingSheet
@@ -480,15 +434,25 @@ const styles = StyleSheet.create({
   quiet: { fontSize: 15, marginTop: 24, textAlign: 'center' },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   collapseHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  viewToggle: {
-    flexDirection: 'row',
-    alignSelf: 'flex-start',
-    borderRadius: 10,
-    padding: 3,
-    marginTop: 4,
-    marginBottom: 10,
+  toggleBar: {
+    position: 'absolute',
+    right: 20,
+    width: 56,
+    alignItems: 'center',
+    zIndex: 10,
   },
-  viewToggleItem: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8 },
-  viewToggleText: { fontSize: 13, fontWeight: '600' },
+  viewToggle: { flexDirection: 'column', alignItems: 'center', gap: 8 },
+  viewToggleItem: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 5,
+    elevation: 3,
+  },
 });
 

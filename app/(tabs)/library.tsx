@@ -21,6 +21,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { fetchProgressForEntries } from '@/features/episodes/api';
 import { useWatchEntries } from '@/features/watch/useWatchEntries';
 import { usePullRefresh } from '@/hooks/usePullRefresh';
+import { useTabBarClearance } from '@/theme/layout';
 import type { EntryWithMedia } from '@/features/watch/api';
 import type { MediaType } from '@/media/types';
 
@@ -48,6 +49,7 @@ export default function Library() {
   const { data: entries, isLoading } = useWatchEntries();
   const [sort, setSort] = useState<Sort>('recent');
   const { refreshing, onRefresh } = usePullRefresh([['watch_entries'], ['progress_all']]);
+  const tabBarClearance = useTabBarClearance();
 
   const allIds = useMemo(() => (entries ?? []).map((e) => e.id), [entries]);
   const { data: progressRows } = useQuery({
@@ -174,7 +176,7 @@ export default function Library() {
           columnWrapperStyle={{ gap }}
           contentContainerStyle={{
             paddingHorizontal: spacing.screenPadding,
-            paddingBottom: 24,
+            paddingBottom: tabBarClearance,
             gap: 16,
           }}
           refreshControl={

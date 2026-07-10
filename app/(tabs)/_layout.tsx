@@ -1,7 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { Tabs } from 'expo-router';
+import { StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/contexts/ThemeContext';
+import {
+  FLOATING_TAB_BAR_HEIGHT,
+  FLOATING_TAB_BAR_MARGIN,
+  tabBarBottomOffset,
+} from '@/theme/layout';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -14,23 +22,58 @@ function tabIcon(active: IconName, inactive: IconName) {
 
 export default function TabsLayout() {
   const { colors, scheme } = useTheme();
+  const insets = useSafeAreaInsets();
+  const radius = FLOATING_TAB_BAR_HEIGHT / 2;
+  const dark = scheme === 'dark';
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textMeta,
+        tabBarShowLabel: false,
+        // Detached, floating pill with a frosted-glass background (Instagram-style).
+        tabBarBackground: () => (
+          <View style={[styles.blurWrap, { borderRadius: radius }]}>
+            <BlurView
+              intensity={dark ? 40 : 60}
+              tint={dark ? 'dark' : 'light'}
+              style={StyleSheet.absoluteFill}
+            />
+            {/* Light opaque veil over the blur so icons stay legible. */}
+            <View
+              style={[
+                StyleSheet.absoluteFill,
+                { backgroundColor: dark ? 'rgba(28,25,23,0.45)' : 'rgba(255,255,255,0.55)' },
+              ]}
+            />
+          </View>
+        ),
         tabBarStyle: {
-          backgroundColor: colors.surface,
+          position: 'absolute',
+          // RN's default tab bar pins start:0/end:0, which override left/right
+          // (start/end win in Yoga). marginHorizontal insets it regardless.
+          marginHorizontal: FLOATING_TAB_BAR_MARGIN,
+          bottom: tabBarBottomOffset(insets.bottom),
+          height: FLOATING_TAB_BAR_HEIGHT,
+          borderRadius: radius,
+          backgroundColor: 'transparent',
           borderTopWidth: 0,
-          elevation: 12,
+          // Cancel the home-indicator padding RN adds inside the bar — the pill is
+          // already lifted above it, so icons must center in the full height.
+          paddingTop: 0,
+          paddingBottom: 0,
+          elevation: 16,
           shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: scheme === 'dark' ? 0.28 : 0.07,
-          shadowRadius: 10,
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: dark ? 0.4 : 0.14,
+          shadowRadius: 16,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        tabBarItemStyle: { paddingTop: 4 },
+        tabBarItemStyle: { height: FLOATING_TAB_BAR_HEIGHT },
+        // The item button hardcodes justifyContent: 'flex-start', pinning the icon
+        // to the top. Auto vertical margins on the icon wrapper (the one element
+        // that receives tabBarIconStyle) absorb the free space equally = centered.
+        tabBarIconStyle: { marginTop: 'auto', marginBottom: 'auto' },
       }}
     >
       <Tabs.Screen
@@ -52,3 +95,8 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  // Clips the blur + veil to the pill's rounded corners.
+  blurWrap: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
+});

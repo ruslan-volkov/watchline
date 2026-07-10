@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet } from 'react-native';
 
 import { useTheme } from '@/contexts/ThemeContext';
+import { useTabBarClearance } from '@/theme/layout';
 
 interface Props {
   icon?: keyof typeof Ionicons.glyphMap;
@@ -12,6 +13,7 @@ interface Props {
 /** Floating action button, bottom-right — thumb-reachable, sits above the tab bar. */
 export function Fab({ icon = 'add', onPress, accessibilityLabel }: Props) {
   const { colors } = useTheme();
+  const clearance = useTabBarClearance();
   return (
     <Pressable
       onPress={onPress}
@@ -19,7 +21,7 @@ export function Fab({ icon = 'add', onPress, accessibilityLabel }: Props) {
       accessibilityLabel={accessibilityLabel}
       style={({ pressed }) => [
         styles.fab,
-        { backgroundColor: colors.accent, opacity: pressed ? 0.85 : 1 },
+        { bottom: clearance, backgroundColor: colors.accent, opacity: pressed ? 0.85 : 1 },
       ]}
     >
       <Ionicons name={icon} size={28} color={colors.accentText} />
@@ -31,7 +33,6 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 20,
-    bottom: 24,
     width: 56,
     height: 56,
     borderRadius: 28,
