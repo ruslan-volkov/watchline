@@ -125,6 +125,7 @@ export type Database = {
           digest_time: string
           id: string
           theme_preference: Database["public"]["Enums"]["theme_pref"]
+          timezone: string
           username: string | null
         }
         Insert: {
@@ -136,6 +137,7 @@ export type Database = {
           digest_time?: string
           id: string
           theme_preference?: Database["public"]["Enums"]["theme_pref"]
+          timezone?: string
           username?: string | null
         }
         Update: {
@@ -147,6 +149,7 @@ export type Database = {
           digest_time?: string
           id?: string
           theme_preference?: Database["public"]["Enums"]["theme_pref"]
+          timezone?: string
           username?: string | null
         }
         Relationships: []

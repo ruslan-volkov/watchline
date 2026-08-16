@@ -41,6 +41,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .eq('id', userId)
       .maybeSingle();
     setProfile(data ?? null);
+    // Keep the stored timezone aligned with the device, so the daily digest can
+    // fire at the user's local digest_time. Silent — never blocks the UI.
+    if (data) {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (tz && data.timezone !== tz) {
+        void supabase.from('profiles').update({ timezone: tz }).eq('id', userId);
+      }
+    }
   }, []);
 
   useEffect(() => {

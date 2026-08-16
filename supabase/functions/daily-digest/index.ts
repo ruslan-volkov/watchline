@@ -13,6 +13,24 @@ function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+// Current hour (0-23) at `date` in the given IANA timezone; falls back to Paris
+// if the stored timezone is missing or invalid.
+function hourInTz(date: Date, tz: string): number {
+  const zone = tz || 'Europe/Paris';
+  try {
+    const h = new Intl.DateTimeFormat('en-US', { timeZone: zone, hour: '2-digit', hour12: false }).format(date);
+    return Number(h) % 24;
+  } catch (_e) {
+    const h = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Paris', hour: '2-digit', hour12: false }).format(date);
+    return Number(h) % 24;
+  }
+}
+
+// Hour component of a `time` value like "09:00:00".
+function digestHour(t: string | null): number {
+  return t ? Number(t.slice(0, 2)) % 24 : 9;
+}
+
 function json(obj: unknown, status = 200): Response {
   return new Response(JSON.stringify(obj), {
     status,
@@ -49,10 +67,18 @@ Deno.serve(async (req: Request) => {
 
   const [{ data: tokens }, { data: profiles }] = await Promise.all([
     supabase.from('push_tokens').select('user_id, token'),
-    supabase.from('profiles').select('id, digest_enabled'),
+    supabase.from('profiles').select('id, digest_enabled, digest_time, timezone'),
   ]);
 
-  const digestUsers = new Set((profiles ?? []).filter((p) => p.digest_enabled).map((p) => p.id));
+  // Runs hourly; a user is due when the current hour in their timezone matches
+  // their chosen digest_time hour.
+  const now = new Date();
+  const digestUsers = new Set(
+    (profiles ?? [])
+      .filter((p) => p.digest_enabled)
+      .filter((p) => hourInTz(now, p.timezone) === digestHour(p.digest_time))
+      .map((p) => p.id),
+  );
   const tokensByUser = new Map<string, string[]>();
   for (const t of tokens ?? []) {
     if (!digestUsers.has(t.user_id)) continue;
