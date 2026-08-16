@@ -127,32 +127,39 @@ export default function MediaDetail() {
       return;
     }
     const plan = planCascade(seasons, ref, progress.watchedKeys);
-    const doMark = async () => {
+    const markOne = async () => {
+      tapHaptic();
+      await progress.mark([ref]);
+    };
+    // No earlier unwatched episodes → just mark this one, no prompt.
+    if (plan.extra === 0) {
+      await markOne();
+      return;
+    }
+    // Earlier episodes are unwatched (skipping ahead, or an anthology like True
+    // Detective where seasons are independent): let the user choose rather than
+    // forcing the cascade.
+    const markAll = async () => {
       tapHaptic();
       await progress.mark(plan.toMark);
-      if (plan.extra >= 1) {
-        const first = plan.toMark[0];
-        const last = plan.toMark[plan.toMark.length - 1];
-        setToast({
-          message: `Épisodes S${first.seasonNumber}E${first.episodeNumber}–S${last.seasonNumber}E${last.episodeNumber} marqués vus aussi`,
-          onUndo: () => {
-            void progress.unmark(plan.toMark);
-          },
-        });
-      }
+      setToast({
+        message: `${plan.toMark.length} épisodes marqués vus`,
+        onUndo: () => {
+          void progress.unmark(plan.toMark);
+        },
+      });
     };
-    if (plan.needsConfirm) {
-      Alert.alert(
-        'Marquer plusieurs épisodes ?',
-        `Ça marquera ${plan.toMark.length} épisodes comme vus (jusqu’à S${ref.seasonNumber}E${ref.episodeNumber}).`,
-        [
-          { text: 'Annuler', style: 'cancel' },
-          { text: 'Marquer', onPress: () => void doMark() },
-        ],
-      );
-    } else {
-      await doMark();
-    }
+    Alert.alert(
+      'Épisodes précédents non vus',
+      `${plan.extra} épisode${plan.extra > 1 ? 's' : ''} avant S${ref.seasonNumber}E${ref.episodeNumber} ${
+        plan.extra > 1 ? 'ne sont pas vus' : 'n’est pas vu'
+      }. Que veux-tu marquer ?`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Seulement celui-ci', onPress: () => void markOne() },
+        { text: 'Celui-ci + les précédents', onPress: () => void markAll() },
+      ],
+    );
   };
 
   const toggleSeason = async (episodes: { seasonNumber: number; episodeNumber: number }[]) => {

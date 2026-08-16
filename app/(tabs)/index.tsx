@@ -33,8 +33,10 @@ import { useTabBarClearance } from '@/theme/layout';
 import { bucketRank, daysFromToday, proximityBucket, releaseSubtitle } from '@/utils/timeGrouping';
 import type { MediaType } from '@/media/types';
 
-/** Height reserved for the floating Liste/Calendrier toggle (drives scroll padding). */
-const TOGGLE_BAR_HEIGHT = 50;
+/** How far the bottom-right floating cluster (Liste/Calendrier toggle stacked
+ *  above the FAB) rises past the tab-bar clearance. Content pads this much extra
+ *  so the last rows' checkboxes aren't hidden behind it. */
+const BOTTOM_CONTROLS_CLEARANCE = 176;
 
 interface UpcomingItem {
   key: string;
@@ -310,7 +312,7 @@ export default function Timeline() {
           ref={scrollRef}
           contentContainerStyle={{
             paddingHorizontal: spacing.screenPadding,
-            paddingBottom: tabBarClearance + TOGGLE_BAR_HEIGHT,
+            paddingBottom: tabBarClearance + BOTTOM_CONTROLS_CLEARANCE,
           }}
           showsVerticalScrollIndicator={false}
           refreshControl={
