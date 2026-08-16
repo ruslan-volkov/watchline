@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 
+import { AnimatedCheck } from '@/components/AnimatedCheck';
 import { Collapsible } from '@/components/Collapsible';
 import { EmptyState } from '@/components/EmptyState';
 import { Fab } from '@/components/Fab';
@@ -21,6 +22,7 @@ import { Screen } from '@/components/Screen';
 import { SectionHeader } from '@/components/SectionHeader';
 import { useDensity } from '@/contexts/DensityContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useMarkNext } from '@/features/episodes/useMarkNext';
 import { useNowWatching, type NowWatchingCardData } from '@/features/watch/useNowWatching';
 import { useWatchEntries } from '@/features/watch/useWatchEntries';
 import { usePullRefresh } from '@/hooks/usePullRefresh';
@@ -74,9 +76,24 @@ function Section({
   );
 }
 
-/** In-progress series row: poster, next episode, and a progress bar. */
+/** In-progress series row: poster, next episode, progress bar, and a quick check
+ *  to mark the next episode watched without opening the detail. */
 function WatchingRow({ card, onPress }: { card: NowWatchingCardData; onPress: () => void }) {
   const { colors } = useTheme();
+  const markNext = useMarkNext();
+  const ep = card.nextEpisode;
+  // Only offer the quick-check when the next episode has actually aired — you
+  // can't have watched one that isn't out yet.
+  const canMark = !!ep && (!ep.airDate || daysFromToday(ep.airDate) <= 0);
+  const markSeen = () => {
+    if (!ep) return;
+    markNext.mutate({
+      entryId: card.entry.id,
+      episode: { seasonNumber: ep.seasonNumber, episodeNumber: ep.episodeNumber },
+      watchedBefore: card.watched,
+      total: card.total,
+    });
+  };
   return (
     <Pressable onPress={onPress} style={styles.watchRow} accessibilityRole="button">
       <PosterPlaceholder
@@ -100,6 +117,13 @@ function WatchingRow({ card, onPress }: { card: NowWatchingCardData; onPress: ()
           style={{ marginTop: 6 }}
         />
       </View>
+      {canMark && ep ? (
+        <AnimatedCheck
+          resetKey={`${ep.seasonNumber}-${ep.episodeNumber}`}
+          onMark={markSeen}
+          accessibilityLabel={`Marquer S${ep.seasonNumber}E${ep.episodeNumber} vu`}
+        />
+      ) : null}
     </Pressable>
   );
 }
