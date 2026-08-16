@@ -442,14 +442,17 @@ export default function MediaDetail() {
                       episodeKey(ep.seasonNumber, ep.episodeNumber),
                     );
                     const unaired = !!ep.airDate && daysFromToday(ep.airDate) > 0;
+                    // Aired episodes toggle freely; an unaired one stays tappable
+                    // only to *unmark* it if it was checked by mistake (self-heal).
+                    const canToggle = !unaired || isWatched;
                     return (
                       <Pressable
                         key={`${ep.seasonNumber}-${ep.episodeNumber}`}
-                        onPress={() => (unaired ? undefined : toggleEpisode(ep))}
-                        disabled={unaired}
+                        onPress={() => (canToggle ? toggleEpisode(ep) : undefined)}
+                        disabled={!canToggle}
                         style={styles.episode}
                         accessibilityRole="checkbox"
-                        accessibilityState={{ checked: isWatched, disabled: unaired }}
+                        accessibilityState={{ checked: isWatched, disabled: !canToggle }}
                       >
                         <Text
                           style={[
@@ -471,7 +474,7 @@ export default function MediaDetail() {
                             {airDateLabel(ep.airDate)}
                           </Text>
                         ) : null}
-                        {unaired ? (
+                        {unaired && !isWatched ? (
                           <View style={[styles.checkbox, { borderColor: 'transparent' }]}>
                             <Ionicons name="time-outline" size={18} color={colors.textMeta} />
                           </View>

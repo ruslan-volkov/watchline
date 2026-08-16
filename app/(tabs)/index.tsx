@@ -20,7 +20,6 @@ import { RatingSheet } from '@/components/RatingSheet';
 import { Screen } from '@/components/Screen';
 import { Toast, type ToastState } from '@/components/Toast';
 import { SectionHeader } from '@/components/SectionHeader';
-import { StatusBadge } from '@/components/StatusBadge';
 import { UpcomingCalendar, type CalendarItem } from '@/components/UpcomingCalendar';
 import { useDensity } from '@/contexts/DensityContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -30,7 +29,13 @@ import { useNowWatching } from '@/features/watch/useNowWatching';
 import { useWatchEntries } from '@/features/watch/useWatchEntries';
 import { usePullRefresh } from '@/hooks/usePullRefresh';
 import { useTabBarClearance } from '@/theme/layout';
-import { bucketRank, daysFromToday, proximityBucket, releaseSubtitle } from '@/utils/timeGrouping';
+import {
+  bucketRank,
+  dayMonthLabel,
+  daysFromToday,
+  proximityBucket,
+  releaseSubtitle,
+} from '@/utils/timeGrouping';
 import type { MediaType } from '@/media/types';
 
 /** How far the bottom-right floating cluster (Liste/Calendrier toggle stacked
@@ -404,7 +409,11 @@ export default function Timeline() {
                   posterPath={item.posterPath}
                   subtitle={item.subtitle}
                   onPress={() => openMedia(item.tmdbId, item.mediaType)}
-                  right={item.isMovie ? <StatusBadge status="plan_to_watch" /> : undefined}
+                  right={
+                    <Text style={[styles.upcomingDate, { color: colors.textMeta }]}>
+                      {dayMonthLabel(item.date)}
+                    </Text>
+                  }
                 />
               ))}
             </View>
@@ -434,6 +443,7 @@ export default function Timeline() {
 
 const styles = StyleSheet.create({
   quiet: { fontSize: 15, marginTop: 24, textAlign: 'center' },
+  upcomingDate: { fontSize: 13, fontWeight: '600' },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   collapseHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   toggleBar: {
