@@ -10,7 +10,7 @@ interface Props {
   /** Stable seed for the placeholder color (tmdb id as string). */
   seed: string;
   title: string;
-  /** Square tile art — the poster, center-cropped; backdrop as a fallback. */
+  /** Vertical poster art; backdrop as a fallback when there's no poster. */
   posterPath?: string | null;
   backdropPath?: string | null;
   subtitle: string;
@@ -24,8 +24,8 @@ interface Props {
   style?: ViewStyle;
 }
 
-/** Elevated card row: square artwork, title + subtitle, optional trailing control
- *  and a full-width progress bar. Sizing follows the density preference. */
+/** Elevated card row: vertical poster, title + subtitle, optional trailing
+ *  control and a full-width progress bar. Sizing follows the density preference. */
 export function CardRow({
   seed,
   title,
@@ -41,7 +41,9 @@ export function CardRow({
   const { colors, scheme } = useTheme();
   const { spacing, density } = useDensity();
   const compact = density === 'compact';
-  const tile = compact ? 46 : 56;
+  // Vertical poster at its native 2:3 ratio — no letterboxing, no backing frame.
+  const posterW = compact ? 38 : 46;
+  const posterH = Math.round(posterW * 1.5);
   const image = posterPath ?? backdropPath ?? null;
   // bg and surface are nearly identical in light mode, so the card needs a
   // hairline + soft shadow to read as elevated.
@@ -69,7 +71,7 @@ export function CardRow({
         {image ? (
           <Image
             source={{ uri: image }}
-            style={{ width: tile, height: tile, borderRadius: compact ? 8 : 10 }}
+            style={{ width: posterW, height: posterH, borderRadius: compact ? 6 : 8 }}
             contentFit="cover"
             transition={150}
           />
@@ -78,9 +80,9 @@ export function CardRow({
             style={[
               styles.center,
               {
-                width: tile,
-                height: tile,
-                borderRadius: compact ? 8 : 10,
+                width: posterW,
+                height: posterH,
+                borderRadius: compact ? 6 : 8,
                 backgroundColor: posterColor(seed, scheme),
               },
             ]}
