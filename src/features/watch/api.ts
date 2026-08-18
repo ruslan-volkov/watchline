@@ -35,6 +35,7 @@ export async function ensureMedia(summary: MediaSummary): Promise<MediaRow> {
         media_type: summary.mediaType,
         title: summary.title,
         poster_path: summary.posterPath,
+        backdrop_path: summary.backdropPath ?? null,
         release_date: summary.releaseDate,
       },
       { onConflict: 'tmdb_id,media_type', ignoreDuplicates: true },

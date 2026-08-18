@@ -12,12 +12,10 @@ import {
 } from 'react-native';
 
 import { AnimatedCheck } from '@/components/AnimatedCheck';
+import { CardRow } from '@/components/CardRow';
 import { Collapsible } from '@/components/Collapsible';
 import { EmptyState } from '@/components/EmptyState';
 import { Fab } from '@/components/Fab';
-import { ListRow } from '@/components/ListRow';
-import { PosterPlaceholder } from '@/components/PosterPlaceholder';
-import { ProgressBar } from '@/components/ProgressBar';
 import { Screen } from '@/components/Screen';
 import { SectionHeader } from '@/components/SectionHeader';
 import { useDensity } from '@/contexts/DensityContext';
@@ -76,10 +74,9 @@ function Section({
   );
 }
 
-/** In-progress series row: poster, next episode, progress bar, and a quick check
- *  to mark the next episode watched without opening the detail. */
+/** In-progress series banner: artwork, next episode, progress bar, and a quick
+ *  check to mark the next episode watched without opening the detail. */
 function WatchingRow({ card, onPress }: { card: NowWatchingCardData; onPress: () => void }) {
-  const { colors } = useTheme();
   const markNext = useMarkNext();
   const ep = card.nextEpisode;
   // Only offer the quick-check when the next episode has actually aired — you
@@ -95,36 +92,24 @@ function WatchingRow({ card, onPress }: { card: NowWatchingCardData; onPress: ()
     });
   };
   return (
-    <Pressable onPress={onPress} style={styles.watchRow} accessibilityRole="button">
-      <PosterPlaceholder
-        seed={`${card.entry.media.tmdb_id}`}
-        title={card.entry.media.title}
-        posterPath={card.entry.media.poster_path}
-        width={48}
-      />
-      <View style={styles.watchText}>
-        <Text numberOfLines={1} style={[styles.watchTitle, { color: colors.textPrimary }]}>
-          {card.entry.media.title}
-        </Text>
-        <Text numberOfLines={1} style={[styles.watchSub, { color: colors.textSecondary }]}>
-          {card.subtitle}
-        </Text>
-        <ProgressBar
-          progress={card.progress}
-          color={colors.accent}
-          trackColor={colors.surfaceAlt}
-          height={5}
-          style={{ marginTop: 6 }}
-        />
-      </View>
-      {canMark && ep ? (
-        <AnimatedCheck
-          resetKey={`${ep.seasonNumber}-${ep.episodeNumber}`}
-          onMark={markSeen}
-          accessibilityLabel={`Marquer S${ep.seasonNumber}E${ep.episodeNumber} vu`}
-        />
-      ) : null}
-    </Pressable>
+    <CardRow
+      seed={`${card.entry.media.tmdb_id}`}
+      title={card.entry.media.title}
+      posterPath={card.entry.media.poster_path}
+      backdropPath={card.entry.media.backdrop_path}
+      subtitle={card.subtitle}
+      progress={card.progress}
+      onPress={onPress}
+      right={
+        canMark && ep ? (
+          <AnimatedCheck
+            resetKey={`${ep.seasonNumber}-${ep.episodeNumber}`}
+            onMark={markSeen}
+            accessibilityLabel={`Marquer S${ep.seasonNumber}E${ep.episodeNumber} vu`}
+          />
+        ) : undefined
+      }
+    />
   );
 }
 
@@ -234,11 +219,12 @@ export default function Watchlist() {
               onToggle={() => setAVoirOpen((v) => !v)}
             >
               {items.map((item) => (
-                <ListRow
+                <CardRow
                   key={item.id}
                   seed={`${item.media.tmdb_id}`}
                   title={item.media.title}
                   posterPath={item.media.poster_path}
+                  backdropPath={item.media.backdrop_path}
                   subtitle={subtitleFor(item)}
                   onPress={() => openMedia(item.media.tmdb_id, item.media.media_type)}
                 />
@@ -258,8 +244,4 @@ const styles = StyleSheet.create({
   chip: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 999 },
   chipText: { fontSize: 14, fontWeight: '600' },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  watchRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
-  watchText: { flex: 1, marginLeft: 12 },
-  watchTitle: { fontSize: 16, fontWeight: '600', marginBottom: 2 },
-  watchSub: { fontSize: 13, fontWeight: '500' },
 });

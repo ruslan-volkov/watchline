@@ -1,15 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRef } from 'react';
+import { Pressable, StyleSheet, Text } from 'react-native';
 import ReanimatedSwipeable, {
   type SwipeableMethods,
 } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Animated, {
   Easing,
   FadeIn,
-  FadeInDown,
   FadeOut,
-  interpolateColor,
   LinearTransition,
   useAnimatedStyle,
   useSharedValue,
@@ -17,16 +15,17 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { PosterPlaceholder } from '@/components/PosterPlaceholder';
+import { AnimatedCheck } from '@/components/AnimatedCheck';
+import { CardRow } from '@/components/CardRow';
 import { useDensity } from '@/contexts/DensityContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { successHaptic } from '@/lib/haptics';
 
 export interface BacklogRowItem {
   key: string;
   seed: string;
   title: string;
   posterPath: string | null;
+  backdropPath?: string | null;
   subtitle: string;
   /** Present for series rows — enables the inline animated check. */
   episode?: { seasonNumber: number; episodeNumber: number };
@@ -42,50 +41,26 @@ interface Props {
 }
 
 /**
- * Animated "À rattraper" row: a "Vu" pill marks the item; the subtitle then
- * fades to the next episode when data updates. Rows fade out and the list
- * reflows smoothly when a title leaves the backlog.
+ * Animated "À rattraper" banner row: tapping the check marks the shown episode
+ * and washes the artwork green; swiping left sets the title aside. Rows fade out
+ * and the list reflows smoothly when a title leaves the backlog.
  */
 export function BacklogRow({ item, onOpen, onMark, onSnooze }: Props) {
   const { colors } = useTheme();
-  const { density } = useDensity();
-  const posterW = density === 'compact' ? 40 : 48;
+  const { spacing } = useDensity();
   const swipeRef = useRef<SwipeableMethods>(null);
 
-  // Keyed so the subtitle re-animates when the row advances to the next episode.
+  // Keyed so the check resets when the row advances to the next episode.
   const epKey = item.episode ? `${item.episode.seasonNumber}-${item.episode.episodeNumber}` : 'movie';
 
-  // Green confirmation: the check fill and the row wash rise together (same
-  // timing) so they swell as one; the wash then recedes while the check stays.
-  const [confirmed, setConfirmed] = useState(false);
+  // Green confirmation wash over the card, receding after it swells. Capped low
+  // so the row stays readable through it.
   const flash = useSharedValue(0);
-  const fill = useSharedValue(0);
-  const RISE = 260;
-  const EASE = Easing.out(Easing.cubic);
-
-  useEffect(() => {
-    setConfirmed(false);
-    fill.value = 0;
-  }, [epKey, fill]);
-
-  const rowStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(
-      flash.value,
-      [0, 1],
-      ['rgba(0,0,0,0)', 'rgba(46,158,91,0.16)'],
-    ),
-  }));
-  const fillStyle = useAnimatedStyle(() => ({
-    opacity: fill.value,
-    transform: [{ scale: 0.6 + 0.4 * fill.value }],
-  }));
+  const washStyle = useAnimatedStyle(() => ({ opacity: flash.value * 0.18 }));
 
   const handleMark = () => {
-    successHaptic();
-    setConfirmed(true);
-    fill.value = withTiming(1, { duration: RISE, easing: EASE });
     flash.value = withSequence(
-      withTiming(1, { duration: RISE, easing: EASE }),
+      withTiming(1, { duration: 260, easing: Easing.out(Easing.cubic) }),
       withTiming(0, { duration: 620, easing: Easing.inOut(Easing.quad) }),
     );
     onMark?.();
@@ -97,7 +72,14 @@ export function BacklogRow({ item, onOpen, onMark, onSnooze }: Props) {
         swipeRef.current?.close();
         onSnooze?.();
       }}
-      style={[styles.snoozeAction, { backgroundColor: colors.surfaceAlt }]}
+      style={[
+        styles.snoozeAction,
+        {
+          backgroundColor: colors.surfaceAlt,
+          borderRadius: spacing.posterRadius,
+          marginBottom: spacing.sm,
+        },
+      ]}
       accessibilityRole="button"
       accessibilityLabel="Mettre en pause"
     >
@@ -107,45 +89,29 @@ export function BacklogRow({ item, onOpen, onMark, onSnooze }: Props) {
   );
 
   const content = (
-    <Pressable
+    <CardRow
+      seed={item.seed}
+      title={item.title}
+      posterPath={item.posterPath}
+      backdropPath={item.backdropPath}
+      subtitle={item.subtitle}
       onPress={onOpen}
-      style={({ pressed }) => [styles.row, { opacity: pressed ? 0.6 : 1 }]}
-      accessibilityRole="button"
-    >
-        <PosterPlaceholder seed={item.seed} title={item.title} posterPath={item.posterPath} width={posterW} />
-        <View style={styles.text}>
-          <Text numberOfLines={1} style={[styles.title, { color: colors.textPrimary }]}>
-            {item.title}
-          </Text>
-          <Animated.Text
-            key={epKey}
-            entering={FadeInDown.duration(240)}
-            numberOfLines={1}
-            style={[styles.subtitle, { color: colors.textSecondary }]}
-          >
-            {item.subtitle}
-          </Animated.Text>
-        </View>
-        {onMark ? (
-          <Pressable
-            onPress={handleMark}
-            hitSlop={8}
-            accessibilityRole="button"
+      overlay={
+        <Animated.View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, { backgroundColor: colors.success }, washStyle]}
+        />
+      }
+      right={
+        onMark ? (
+          <AnimatedCheck
+            resetKey={epKey}
+            onMark={handleMark}
             accessibilityLabel={item.episode ? 'Marquer cet épisode vu' : 'Marquer comme vu'}
-            style={({ pressed }) => [
-              styles.check,
-              { borderColor: colors.border, opacity: pressed ? 0.5 : 1 },
-            ]}
-          >
-            <Ionicons name="checkmark" size={18} color={colors.textMeta} />
-            {confirmed ? (
-              <Animated.View style={[styles.checkFill, { backgroundColor: colors.success }, fillStyle]}>
-                <Ionicons name="checkmark" size={18} color="#fff" />
-              </Animated.View>
-            ) : null}
-          </Pressable>
-        ) : null}
-    </Pressable>
+          />
+        ) : undefined
+      }
+    />
   );
 
   return (
@@ -153,7 +119,6 @@ export function BacklogRow({ item, onOpen, onMark, onSnooze }: Props) {
       layout={LinearTransition.duration(260)}
       entering={FadeIn.duration(200)}
       exiting={FadeOut.duration(160)}
-      style={[styles.wrap, rowStyle]}
     >
       {onSnooze ? (
         <ReanimatedSwipeable
@@ -173,37 +138,11 @@ export function BacklogRow({ item, onOpen, onMark, onSnooze }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { borderRadius: 12, marginHorizontal: -8, paddingHorizontal: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
-  text: { flex: 1, marginLeft: 12 },
-  title: { fontSize: 16, fontWeight: '600', marginBottom: 2 },
-  subtitle: { fontSize: 13, fontWeight: '500' },
-  check: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 10,
-    overflow: 'hidden',
-  },
-  checkFill: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   snoozeAction: {
     width: 78,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 3,
-    borderRadius: 12,
     marginLeft: 6,
   },
   snoozeText: { fontSize: 12, fontWeight: '600' },

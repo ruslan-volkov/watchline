@@ -12,10 +12,10 @@ import {
 import Animated from 'react-native-reanimated';
 
 import { BacklogRow } from '@/components/BacklogRow';
+import { CardRow } from '@/components/CardRow';
 import { Collapsible } from '@/components/Collapsible';
 import { EmptyState } from '@/components/EmptyState';
 import { Fab } from '@/components/Fab';
-import { ListRow } from '@/components/ListRow';
 import { RatingSheet } from '@/components/RatingSheet';
 import { Screen } from '@/components/Screen';
 import { Toast, type ToastState } from '@/components/Toast';
@@ -50,6 +50,7 @@ interface UpcomingItem {
   seed: string;
   title: string;
   posterPath: string | null;
+  backdropPath: string | null;
   subtitle: string;
   isMovie: boolean;
   tmdbId: number;
@@ -113,6 +114,7 @@ export default function Timeline() {
           seed: `${e.media.tmdb_id}`,
           title: e.media.title,
           posterPath: e.media.poster_path,
+          backdropPath: e.media.backdrop_path,
           subtitle: releaseSubtitle(e.media.release_date, isMovie ? 'movie' : 'episode'),
           isMovie,
           tmdbId: e.media.tmdb_id,
@@ -132,6 +134,7 @@ export default function Timeline() {
           seed: `${c.entry.media.tmdb_id}`,
           title: c.entry.media.title,
           posterPath: c.entry.media.poster_path,
+          backdropPath: c.entry.media.backdrop_path,
           subtitle: releaseSubtitle(ep.airDate, 'episode', `S${ep.seasonNumber}E${ep.episodeNumber}`),
           isMovie: false,
           tmdbId: c.entry.media.tmdb_id,
@@ -162,6 +165,7 @@ export default function Timeline() {
       seed: string;
       title: string;
       posterPath: string | null;
+      backdropPath: string | null;
       subtitle: string;
       tmdbId: number;
       mediaType: MediaType;
@@ -189,6 +193,7 @@ export default function Timeline() {
             seed: `${e.media.tmdb_id}`,
             title: e.media.title,
             posterPath: e.media.poster_path,
+            backdropPath: e.media.backdrop_path,
             subtitle: isMovie ? 'Sorti · à voir' : 'Dispo · à commencer',
             tmdbId: e.media.tmdb_id,
             mediaType: e.media.media_type,
@@ -211,6 +216,7 @@ export default function Timeline() {
         seed: `${c.entry.media.tmdb_id}`,
         title: c.entry.media.title,
         posterPath: c.entry.media.poster_path,
+        backdropPath: c.entry.media.backdrop_path,
         subtitle: `S${ep.seasonNumber}E${ep.episodeNumber} · ${ep.title}`,
         tmdbId: c.entry.media.tmdb_id,
         mediaType: 'tv',
@@ -366,6 +372,7 @@ export default function Timeline() {
                       seed: item.seed,
                       title: item.title,
                       posterPath: item.posterPath,
+                      backdropPath: item.backdropPath,
                       subtitle: item.subtitle,
                       episode: item.episode
                         ? {
@@ -402,11 +409,12 @@ export default function Timeline() {
             <View key={bucket}>
               <SectionHeader>{bucket}</SectionHeader>
               {items.map((item) => (
-                <ListRow
+                <CardRow
                   key={item.key}
                   seed={item.seed}
                   title={item.title}
                   posterPath={item.posterPath}
+                  backdropPath={item.backdropPath}
                   subtitle={item.subtitle}
                   onPress={() => openMedia(item.tmdbId, item.mediaType)}
                   right={

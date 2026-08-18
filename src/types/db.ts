@@ -87,6 +87,7 @@ export type Database = {
       }
       media: {
         Row: {
+          backdrop_path: string | null
           created_at: string
           id: string
           media_type: Database["public"]["Enums"]["media_type"]
@@ -96,6 +97,7 @@ export type Database = {
           tmdb_id: number
         }
         Insert: {
+          backdrop_path?: string | null
           created_at?: string
           id?: string
           media_type: Database["public"]["Enums"]["media_type"]
@@ -105,6 +107,7 @@ export type Database = {
           tmdb_id: number
         }
         Update: {
+          backdrop_path?: string | null
           created_at?: string
           id?: string
           media_type?: Database["public"]["Enums"]["media_type"]
