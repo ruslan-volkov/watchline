@@ -41,7 +41,7 @@ export function CardRow({
   const { colors, scheme } = useTheme();
   const { spacing, density } = useDensity();
   const compact = density === 'compact';
-  const tile = compact ? 52 : 64;
+  const tile = compact ? 46 : 56;
   const image = posterPath ?? backdropPath ?? null;
   // bg and surface are nearly identical in light mode, so the card needs a
   // hairline + soft shadow to read as elevated.
@@ -57,8 +57,8 @@ export function CardRow({
           backgroundColor: colors.surface,
           borderColor: colors.border,
           borderRadius: spacing.posterRadius,
-          padding: compact ? 9 : 12,
-          marginBottom: spacing.sm,
+          padding: compact ? 7 : 9,
+          marginBottom: compact ? 4 : 6,
           shadowOpacity: dark ? 0 : 0.06,
           opacity: pressed && onPress ? 0.75 : 1,
         },

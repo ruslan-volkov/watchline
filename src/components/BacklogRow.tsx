@@ -47,7 +47,7 @@ interface Props {
  */
 export function BacklogRow({ item, onOpen, onMark, onSnooze }: Props) {
   const { colors } = useTheme();
-  const { spacing } = useDensity();
+  const { spacing, density } = useDensity();
   const swipeRef = useRef<SwipeableMethods>(null);
 
   // Keyed so the check resets when the row advances to the next episode.
@@ -77,7 +77,8 @@ export function BacklogRow({ item, onOpen, onMark, onSnooze }: Props) {
         {
           backgroundColor: colors.surfaceAlt,
           borderRadius: spacing.posterRadius,
-          marginBottom: spacing.sm,
+          // Match CardRow's gap so the action stays flush with the card.
+          marginBottom: density === 'compact' ? 4 : 6,
         },
       ]}
       accessibilityRole="button"
