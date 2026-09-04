@@ -1,12 +1,13 @@
-import { useQueries, useQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useRef } from 'react';
 
 import { fetchProgressForEntries } from '@/features/episodes/api';
 import { episodeKey, orderEpisodes } from '@/features/episodes/cascade';
 import { mediaProvider } from '@/media/provider';
 import type { EpisodeInfo, MediaDetails } from '@/media/types';
-import { useWatchEntries } from './useWatchEntries';
-import type { EntryWithMedia } from './api';
+import { hasReturned } from './reopen';
+import { entriesKey, useWatchEntries } from './useWatchEntries';
+import { updateEntry, type EntryWithMedia } from './api';
 
 export interface NowWatchingCardData {
   entry: EntryWithMedia;
@@ -25,39 +26,47 @@ function todayIso(): string {
 }
 
 /**
- * Enriches "watching" TV entries with episode totals + progress so the home
- * carousel can render bars and the "next episode" check.
+ * Enriches "watching" TV entries with episode totals + progress so the home and
+ * watchlist rows can render bars and the "next episode" check.
+ *
+ * Completed series are loaded too — not to display them, but to detect ones that
+ * have since gained new episodes (a returning show) and reopen them, so a new
+ * season resurfaces instead of staying hidden behind the "completed" status.
  */
 export function useNowWatching(): { cards: NowWatchingCardData[]; isLoading: boolean } {
   const { data: entries } = useWatchEntries();
+  const qc = useQueryClient();
 
-  const watching = useMemo(
+  const tracked = useMemo(
     () =>
       (entries ?? []).filter(
-        (e) => e.status === 'watching' && e.media.media_type === 'tv' && !e.snoozed,
+        (e) =>
+          e.media.media_type === 'tv' &&
+          !e.snoozed &&
+          (e.status === 'watching' || e.status === 'completed'),
       ),
     [entries],
   );
 
   const detailQueries = useQueries({
-    queries: watching.map((e) => ({
+    queries: tracked.map((e) => ({
       queryKey: ['media_details', 'tv', e.media.tmdb_id],
       queryFn: () => mediaProvider.getDetails(e.media.tmdb_id, 'tv'),
       staleTime: 5 * 60_000,
     })),
   });
 
-  const entryIds = useMemo(() => watching.map((e) => e.id), [watching]);
+  const entryIds = useMemo(() => tracked.map((e) => e.id), [tracked]);
   const progressQuery = useQuery({
     queryKey: ['progress_all', entryIds],
     queryFn: () => fetchProgressForEntries(entryIds),
     enabled: entryIds.length > 0,
   });
 
-  const cards = useMemo<NowWatchingCardData[]>(() => {
+  const computed = useMemo(() => {
     const rows = progressQuery.data ?? [];
     const now = todayIso();
-    return watching.map((entry, i) => {
+    return tracked.map((entry, i) => {
       const details = detailQueries[i]?.data as MediaDetails | null | undefined;
       const seasons = details?.seasons ?? [];
       const all = orderEpisodes(seasons);
@@ -73,6 +82,14 @@ export function useNowWatching(): { cards: NowWatchingCardData[]; isLoading: boo
       );
       const nextEpisode = unwatched[0] ?? null;
       const airedUnwatched = unwatched.filter((ep) => ep.airDate && ep.airDate <= now).length;
+      // Only meaningful once details actually loaded, otherwise an empty episode
+      // list would look like "nothing new".
+      const maxWatchedSeason = rows
+        .filter((r) => r.entry_id === entry.id)
+        .reduce((max, r) => Math.max(max, r.season_number), 0);
+      const hasNewEpisodes =
+        details != null &&
+        hasReturned(unwatched, { finishedAt: entry.finished_at, today: now, maxWatchedSeason });
       const subtitle = nextEpisode
         ? `S${nextEpisode.seasonNumber}E${nextEpisode.episodeNumber} · ${watched}/${total || '?'}`
         : total
@@ -86,9 +103,32 @@ export function useNowWatching(): { cards: NowWatchingCardData[]; isLoading: boo
         nextEpisode,
         airedUnwatched,
         subtitle,
+        hasNewEpisodes,
       };
     });
-  }, [watching, detailQueries, progressQuery.data]);
+  }, [tracked, detailQueries, progressQuery.data]);
+
+  // Reopen returning series that gained episodes since being completed. Guarded
+  // by a ref so the write happens once per entry, not on every render.
+  const reopening = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    for (const c of computed) {
+      if (c.entry.status !== 'completed' || !c.hasNewEpisodes) continue;
+      if (reopening.current.has(c.entry.id)) continue;
+      reopening.current.add(c.entry.id);
+      updateEntry({ entryId: c.entry.id, patch: { status: 'watching', finished_at: null } })
+        .then(() => qc.invalidateQueries({ queryKey: entriesKey }))
+        .catch(() => reopening.current.delete(c.entry.id));
+    }
+  }, [computed, qc]);
+
+  const cards = useMemo<NowWatchingCardData[]>(
+    () =>
+      computed
+        .filter((c) => c.entry.status === 'watching')
+        .map(({ hasNewEpisodes: _ignored, ...card }) => card),
+    [computed],
+  );
 
   const isLoading = progressQuery.isLoading || detailQueries.some((q) => q.isLoading);
   return { cards, isLoading };

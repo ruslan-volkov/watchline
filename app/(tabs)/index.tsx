@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import Animated from 'react-native-reanimated';
 
+import { AnimatedCheck } from '@/components/AnimatedCheck';
 import { BacklogRow } from '@/components/BacklogRow';
 import { CardRow } from '@/components/CardRow';
 import { Collapsible } from '@/components/Collapsible';
@@ -55,6 +56,16 @@ interface UpcomingItem {
   isMovie: boolean;
   tmdbId: number;
   mediaType: MediaType;
+  /** Set for a released movie: enables the inline "mark seen" check + rating. */
+  movieEntryId?: string;
+  /** Set for a series row: enables the inline "mark watched" check. */
+  episode?: {
+    entryId: string;
+    seasonNumber: number;
+    episodeNumber: number;
+    watched: number;
+    total: number;
+  };
 }
 
 export default function Timeline() {
@@ -90,7 +101,7 @@ export default function Timeline() {
     if (ratingFor) update.mutate({ entryId: ratingFor.entryId, patch: { rating, notes } });
     setRatingFor(null);
   };
-  const { refreshing, onRefresh } = usePullRefresh([['watch_entries'], ['progress_all']]);
+  const { refreshing, onRefresh } = usePullRefresh([['watch_entries'], ['progress_all'], ['media_details']]);
   const tabBarClearance = useTabBarClearance();
 
   const openMedia = (tmdbId: number, type: MediaType) =>
@@ -119,14 +130,15 @@ export default function Timeline() {
           isMovie,
           tmdbId: e.media.tmdb_id,
           mediaType: e.media.media_type,
+          movieEntryId: isMovie ? e.id : undefined,
         });
       }
     }
-    // Next unwatched episode of watching series, only if it airs in the future
-    // (already-aired ones belong to the "À rattraper" section instead).
+    // Next unwatched episode of watching series, airing today or later. Episodes
+    // that aired before today belong to the "À rattraper" section instead.
     for (const c of cards) {
       const ep = c.nextEpisode;
-      if (ep?.airDate && daysFromToday(ep.airDate) > 0) {
+      if (ep?.airDate && daysFromToday(ep.airDate) >= 0) {
         items.push({
           key: `ep-${c.entry.id}`,
           date: ep.airDate,
@@ -139,6 +151,13 @@ export default function Timeline() {
           isMovie: false,
           tmdbId: c.entry.media.tmdb_id,
           mediaType: 'tv',
+          episode: {
+            entryId: c.entry.id,
+            seasonNumber: ep.seasonNumber,
+            episodeNumber: ep.episodeNumber,
+            watched: c.watched,
+            total: c.total,
+          },
         });
       }
     }
@@ -158,7 +177,8 @@ export default function Timeline() {
     });
   }, [upcoming]);
 
-  // Released but unwatched: movies already out + the next aired episode of series.
+  // Overdue and unwatched: titles out before today + the next overdue episode of
+  // each series. Anything landing today lives in the timeline's "Aujourd'hui".
   const backlog = useMemo(() => {
     const items: {
       key: string;
@@ -186,7 +206,7 @@ export default function Timeline() {
     for (const e of entries ?? []) {
       if (e.status === 'plan_to_watch' && !e.snoozed) {
         const rd = e.media.release_date;
-        if (!rd || daysFromToday(rd) <= 0) {
+        if (!rd || daysFromToday(rd) < 0) {
           const isMovie = e.media.media_type === 'movie';
           items.push({
             key: `p-${e.id}`,
@@ -204,12 +224,14 @@ export default function Timeline() {
       }
     }
 
-    // Series: show the specific next episode to watch, if it has already aired
-    // (aired = air date today-or-past, or unknown).
+    // Series: the next episode to watch, only once it's overdue — aired strictly
+    // before today. An episode with no air date isn't out yet (a season TMDB has
+    // announced but not scheduled), so it belongs nowhere until it gets a date.
+    // Today's airings show under "Aujourd'hui" in the timeline above.
     for (const c of cards) {
       const ep = c.nextEpisode;
       if (!ep) continue;
-      const aired = !ep.airDate || daysFromToday(ep.airDate) <= 0;
+      const aired = !!ep.airDate && daysFromToday(ep.airDate) < 0;
       if (!aired) continue;
       items.push({
         key: `s-${c.entry.id}`,
@@ -408,22 +430,57 @@ export default function Timeline() {
           {grouped.map(([bucket, items]) => (
             <View key={bucket}>
               <SectionHeader>{bucket}</SectionHeader>
-              {items.map((item) => (
-                <CardRow
-                  key={item.key}
-                  seed={item.seed}
-                  title={item.title}
-                  posterPath={item.posterPath}
-                  backdropPath={item.backdropPath}
-                  subtitle={item.subtitle}
-                  onPress={() => openMedia(item.tmdbId, item.mediaType)}
-                  right={
-                    <Text style={[styles.upcomingDate, { color: colors.textMeta }]}>
-                      {dayMonthLabel(item.date)}
-                    </Text>
-                  }
-                />
-              ))}
+              {items.map((item) => {
+                // Out today → offer the check straight away; the date would just
+                // read "today" anyway. Future rows keep showing their date.
+                const markable = daysFromToday(item.date) <= 0;
+                const onMark = !markable
+                  ? undefined
+                  : item.episode
+                    ? () =>
+                        markNext.mutate({
+                          entryId: item.episode!.entryId,
+                          episode: {
+                            seasonNumber: item.episode!.seasonNumber,
+                            episodeNumber: item.episode!.episodeNumber,
+                          },
+                          watchedBefore: item.episode!.watched,
+                          total: item.episode!.total,
+                        })
+                    : item.movieEntryId
+                      ? () => markMovieSeen(item.movieEntryId!, item.title)
+                      : undefined;
+                return (
+                  <CardRow
+                    key={item.key}
+                    seed={item.seed}
+                    title={item.title}
+                    posterPath={item.posterPath}
+                    backdropPath={item.backdropPath}
+                    subtitle={item.subtitle}
+                    onPress={() => openMedia(item.tmdbId, item.mediaType)}
+                    right={
+                      onMark ? (
+                        <AnimatedCheck
+                          resetKey={
+                            item.episode
+                              ? `${item.episode.seasonNumber}-${item.episode.episodeNumber}`
+                              : item.key
+                          }
+                          onMark={onMark}
+                          accessibilityLabel={
+                            item.episode ? 'Marquer cet épisode vu' : 'Marquer comme vu'
+                          }
+                        />
+                      ) : (
+                        <Text style={[styles.upcomingDate, { color: colors.textMeta }]}>
+                          {dayMonthLabel(item.date)}
+                        </Text>
+                      )
+                    }
+                  />
+                );
+              })}
             </View>
           ))}
 

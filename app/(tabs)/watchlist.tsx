@@ -80,8 +80,9 @@ function WatchingRow({ card, onPress }: { card: NowWatchingCardData; onPress: ()
   const markNext = useMarkNext();
   const ep = card.nextEpisode;
   // Only offer the quick-check when the next episode has actually aired — you
-  // can't have watched one that isn't out yet.
-  const canMark = !!ep && (!ep.airDate || daysFromToday(ep.airDate) <= 0);
+  // can't have watched one that isn't out yet, and "no air date" means an
+  // announced-but-unscheduled episode, not an available one.
+  const canMark = !!ep?.airDate && daysFromToday(ep.airDate) <= 0;
   const markSeen = () => {
     if (!ep) return;
     markNext.mutate({
@@ -122,7 +123,7 @@ export default function Watchlist() {
   const [filter, setFilter] = useState<Filter>('all');
   const [enCoursOpen, setEnCoursOpen] = useState(true);
   const [aVoirOpen, setAVoirOpen] = useState(true);
-  const { refreshing, onRefresh } = usePullRefresh([['watch_entries'], ['progress_all']]);
+  const { refreshing, onRefresh } = usePullRefresh([['watch_entries'], ['progress_all'], ['media_details']]);
   const tabBarClearance = useTabBarClearance();
 
   // "À voir" — not-yet-started titles.
