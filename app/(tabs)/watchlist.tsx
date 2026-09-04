@@ -169,7 +169,7 @@ export default function Watchlist() {
       {items.length === 0 && watching.length === 0 ? (
         isLoading ? (
           <View style={styles.loading}>
-            <ActivityIndicator color={colors.accent} />
+            <ActivityIndicator color={colors.accentInk} />
           </View>
         ) : (
           <EmptyState

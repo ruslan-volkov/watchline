@@ -83,7 +83,7 @@ export default function Friends() {
           <>
             <SectionHeader>Résultats</SectionHeader>
             {isFetching ? (
-              <ActivityIndicator color={colors.accent} style={{ marginTop: 16 }} />
+              <ActivityIndicator color={colors.accentInk} style={{ marginTop: 16 }} />
             ) : (results ?? []).length === 0 ? (
               <Text style={[styles.quiet, { color: colors.textMeta }]}>
                 Aucun pseudo ne correspond.
@@ -108,7 +108,7 @@ export default function Friends() {
                     ) : rel === 'outgoing' ? (
                       <Text style={[styles.badge, { color: colors.textMeta }]}>Envoyée</Text>
                     ) : rel === 'incoming' ? (
-                      <Text style={[styles.badge, { color: colors.accent }]}>Vous a ajouté</Text>
+                      <Text style={[styles.badge, { color: colors.accentInk }]}>Vous a ajouté</Text>
                     ) : (
                       <Pressable
                         onPress={() => send.mutate(u.id)}

@@ -35,7 +35,7 @@ export default function Paused() {
 
       {isLoading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={colors.accent} />
+          <ActivityIndicator color={colors.accentInk} />
         </View>
       ) : paused.length === 0 ? (
         <EmptyState

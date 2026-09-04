@@ -83,7 +83,7 @@ export default function SignUp() {
 
               <View style={styles.footer}>
                 <Text style={{ color: colors.textSecondary }}>Déjà un compte ? </Text>
-                <Link href="/(auth)/sign-in" style={[styles.link, { color: colors.accent }]}>
+                <Link href="/(auth)/sign-in" style={[styles.link, { color: colors.accentInk }]}>
                   Se connecter
                 </Link>
               </View>

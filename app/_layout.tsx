@@ -56,7 +56,7 @@ function RootNavigator() {
   if (gating) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg }}>
-        <ActivityIndicator color={colors.accent} />
+        <ActivityIndicator color={colors.accentInk} />
       </View>
     );
   }

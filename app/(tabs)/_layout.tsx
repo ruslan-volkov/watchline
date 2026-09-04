@@ -29,7 +29,7 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.accent,
+        tabBarActiveTintColor: colors.accentInk,
         tabBarInactiveTintColor: colors.textMeta,
         tabBarShowLabel: false,
         // Detached, floating pill with a frosted-glass background (Instagram-style).

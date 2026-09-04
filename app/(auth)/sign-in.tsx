@@ -37,7 +37,7 @@ export default function SignIn() {
         style={styles.flex}
       >
         <View style={styles.content}>
-          <Text style={[styles.brand, { color: colors.accent }]}>Watchline</Text>
+          <Text style={[styles.brand, { color: colors.accentInk }]}>Watchline</Text>
           <Text style={[styles.tagline, { color: colors.textPrimary }]}>
             Ce que tu regardes, suivi simplement.
           </Text>
@@ -71,7 +71,7 @@ export default function SignIn() {
 
           <View style={styles.footer}>
             <Text style={{ color: colors.textSecondary }}>Pas encore de compte ? </Text>
-            <Link href="/(auth)/sign-up" style={[styles.link, { color: colors.accent }]}>
+            <Link href="/(auth)/sign-up" style={[styles.link, { color: colors.accentInk }]}>
               Créer un compte
             </Link>
           </View>

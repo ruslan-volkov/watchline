@@ -118,7 +118,7 @@ export function CardRow({
       {progress !== undefined ? (
         <ProgressBar
           progress={progress}
-          color={colors.accent}
+          color={colors.accentInk}
           trackColor={colors.surfaceAlt}
           height={4}
           style={{ marginTop: compact ? 8 : 10 }}

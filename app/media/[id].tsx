@@ -203,7 +203,7 @@ export default function MediaDetail() {
   if (isLoading) {
     return (
       <SafeAreaView style={[styles.root, styles.center, { backgroundColor: colors.bg }]}>
-        <ActivityIndicator color={colors.accent} />
+        <ActivityIndicator color={colors.accentInk} />
       </SafeAreaView>
     );
   }
@@ -269,7 +269,7 @@ export default function MediaDetail() {
               <Ionicons
                 name={entry.snoozed ? 'play-circle-outline' : 'pause-circle-outline'}
                 size={24}
-                color={entry.snoozed ? colors.accent : colors.textSecondary}
+                color={entry.snoozed ? colors.accentInk : colors.textSecondary}
               />
             </Pressable>
             <Pressable onPress={confirmRemove} hitSlop={10} accessibilityRole="button">
@@ -312,7 +312,7 @@ export default function MediaDetail() {
             </Text>
             {details.overview.length > 160 ? (
               <Pressable onPress={() => setOverviewExpanded((v) => !v)} hitSlop={6}>
-                <Text style={[styles.overviewMore, { color: colors.accent }]}>
+                <Text style={[styles.overviewMore, { color: colors.accentInk }]}>
                   {overviewExpanded ? 'Voir moins' : 'Voir plus'}
                 </Text>
               </Pressable>
@@ -362,7 +362,7 @@ export default function MediaDetail() {
                 <Text style={[styles.ratingHint, { color: colors.textMeta }]}>Pas encore notée</Text>
               )}
             </View>
-            <Text style={[styles.ratingCta, { color: colors.accent }]}>
+            <Text style={[styles.ratingCta, { color: colors.accentInk }]}>
               {entry.rating ? 'Modifier' : 'Noter'}
             </Text>
           </Pressable>

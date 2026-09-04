@@ -302,7 +302,7 @@ export default function Timeline() {
       {!hasContent ? (
         isLoading ? (
           <View style={styles.loading}>
-            <ActivityIndicator color={colors.accent} />
+            <ActivityIndicator color={colors.accentInk} />
           </View>
         ) : (
           <EmptyState

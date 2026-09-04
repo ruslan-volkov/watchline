@@ -14,8 +14,13 @@ export interface ColorTokens {
   textPrimary: string;
   textSecondary: string;
   textMeta: string;
+  /** Brand fill: buttons, FAB, active chips, progress. Pair with accentText. */
   accent: string;
+  /** Ink laid on top of an accent fill. */
   accentText: string;
+  /** Brand colour for text and icons on normal surfaces, where the fill would be
+   *  unreadable. Same hue, darkened in light mode. */
+  accentInk: string;
   border: string;
   overlay: string;
   star: string;
@@ -31,8 +36,9 @@ const light: ColorTokens = {
   textPrimary: '#1F1B16',
   textSecondary: '#5E574E',
   textMeta: '#9A9187',
-  accent: '#B4577A',
-  accentText: '#FFFFFF',
+  accent: '#F5C518',
+  accentText: '#3D2F00',
+  accentInk: '#8A6A00',
   border: '#ECE7E0',
   overlay: 'rgba(0,0,0,0.45)',
   star: '#E8A33D',
@@ -48,8 +54,9 @@ const dark: ColorTokens = {
   textPrimary: '#F5F1EB',
   textSecondary: '#B8B0A6',
   textMeta: '#7E766C',
-  accent: '#D98CA8',
-  accentText: '#141210',
+  accent: '#F5C518',
+  accentText: '#3D2F00',
+  accentInk: '#F5C518',
   border: '#332E29',
   overlay: 'rgba(0,0,0,0.6)',
   star: '#F0B44E',

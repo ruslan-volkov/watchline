@@ -155,7 +155,7 @@ export default function Library() {
       {completed.length === 0 ? (
         isLoading ? (
           <View style={styles.loading}>
-            <ActivityIndicator color={colors.accent} />
+            <ActivityIndicator color={colors.accentInk} />
           </View>
         ) : (
           <>

@@ -123,13 +123,13 @@ export default function Search() {
           />
         </View>
         <Pressable onPress={() => router.back()} hitSlop={8} accessibilityRole="button">
-          <Text style={[styles.cancel, { color: colors.accent }]}>Annuler</Text>
+          <Text style={[styles.cancel, { color: colors.accentInk }]}>Annuler</Text>
         </Pressable>
       </View>
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={colors.accent} />
+          <ActivityIndicator color={colors.accentInk} />
         </View>
       ) : listData.length === 0 ? (
         <EmptyState
@@ -178,7 +178,7 @@ export default function Search() {
                       accessibilityRole="button"
                       accessibilityLabel="Ajouter"
                     >
-                      <Ionicons name="add-circle-outline" size={24} color={colors.accent} />
+                      <Ionicons name="add-circle-outline" size={24} color={colors.accentInk} />
                     </Pressable>
                   )
                 }

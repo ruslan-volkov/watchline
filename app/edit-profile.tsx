@@ -92,7 +92,7 @@ export default function EditProfile() {
                 )}
               </View>
             </Pressable>
-            <Text style={[styles.changePhoto, { color: colors.accent }]}>Changer la photo</Text>
+            <Text style={[styles.changePhoto, { color: colors.accentInk }]}>Changer la photo</Text>
           </View>
 
           <TextField

@@ -79,7 +79,7 @@ export default function Profile() {
       padded={false}
       headerRight={
         <Pressable onPress={() => router.push('/edit-profile')} hitSlop={8} accessibilityRole="button">
-          <Text style={{ color: colors.accent, fontSize: 15, fontWeight: '600' }}>Modifier</Text>
+          <Text style={{ color: colors.accentInk, fontSize: 15, fontWeight: '600' }}>Modifier</Text>
         </Pressable>
       }
     >

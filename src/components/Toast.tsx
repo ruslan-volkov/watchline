@@ -49,7 +49,7 @@ export function Toast({ toast, onDismiss, duration = 4000 }: Props) {
             hitSlop={8}
             accessibilityRole="button"
           >
-            <Text style={[styles.undo, { color: colors.accent }]}>Annuler</Text>
+            <Text style={[styles.undo, { color: colors.accentInk }]}>Annuler</Text>
           </Pressable>
         ) : null}
       </Animated.View>
