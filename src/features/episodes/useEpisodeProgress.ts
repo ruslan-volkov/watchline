@@ -39,42 +39,51 @@ export function useEpisodeProgress(entryId: string | undefined, seasons: SeasonI
   const totalCount = useMemo(() => orderEpisodes(seasons).length, [seasons]);
   const watchedCount = watchedKeys.size;
 
-  const invalidate = () => {
-    if (entryId) qc.invalidateQueries({ queryKey: progressKey(entryId) });
+  const invalidate = (id: string | undefined) => {
+    if (id) qc.invalidateQueries({ queryKey: progressKey(id) });
     qc.invalidateQueries({ queryKey: entriesKey });
     // Home aggregates progress across entries under this key — refresh it too.
     qc.invalidateQueries({ queryKey: ['progress_all'] });
   };
 
   /** Sync parent entry status from a projected watched count. */
-  const syncStatus = async (projectedWatched: number) => {
-    if (!entryId || totalCount === 0) return;
+  const syncStatus = async (id: string, projectedWatched: number) => {
+    if (totalCount === 0) return;
     if (projectedWatched >= totalCount) {
-      await updateEntry({ entryId, patch: { status: 'completed', finished_at: today() } });
+      await updateEntry({ entryId: id, patch: { status: 'completed', finished_at: today() } });
     } else if (projectedWatched > 0) {
       await updateEntry({
-        entryId,
+        entryId: id,
         patch: { status: 'watching', started_at: today(), finished_at: null },
       });
     }
   };
 
+  // `forEntryId` lets a caller act on an entry it just created, before the
+  // entries query has refetched and bound `entryId` here.
+  interface Vars {
+    episodes: EpisodeRef[];
+    forEntryId?: string;
+  }
+
   const mark = useMutation({
-    mutationFn: async (episodes: EpisodeRef[]) => {
-      if (!entryId) return;
-      await markEpisodes(entryId, episodes);
-      await syncStatus(watchedCount + episodes.length);
+    mutationFn: async ({ episodes, forEntryId }: Vars) => {
+      const id = forEntryId ?? entryId;
+      if (!id) return;
+      await markEpisodes(id, episodes);
+      await syncStatus(id, watchedCount + episodes.length);
     },
-    onSuccess: invalidate,
+    onSuccess: (_data, vars) => invalidate(vars.forEntryId ?? entryId),
   });
 
   const unmark = useMutation({
-    mutationFn: async (episodes: EpisodeRef[]) => {
-      if (!entryId) return;
-      await unmarkEpisodes(entryId, episodes);
-      await syncStatus(Math.max(0, watchedCount - episodes.length));
+    mutationFn: async ({ episodes, forEntryId }: Vars) => {
+      const id = forEntryId ?? entryId;
+      if (!id) return;
+      await unmarkEpisodes(id, episodes);
+      await syncStatus(id, Math.max(0, watchedCount - episodes.length));
     },
-    onSuccess: invalidate,
+    onSuccess: (_data, vars) => invalidate(vars.forEntryId ?? entryId),
   });
 
   return {
@@ -83,7 +92,9 @@ export function useEpisodeProgress(entryId: string | undefined, seasons: SeasonI
     watchedCount,
     totalCount,
     isWatched: (season: number, episode: number) => watchedKeys.has(episodeKey(season, episode)),
-    mark: (episodes: EpisodeRef[]) => mark.mutateAsync(episodes),
-    unmark: (episodes: EpisodeRef[]) => unmark.mutateAsync(episodes),
+    mark: (episodes: EpisodeRef[], forEntryId?: string) =>
+      mark.mutateAsync({ episodes, forEntryId }),
+    unmark: (episodes: EpisodeRef[], forEntryId?: string) =>
+      unmark.mutateAsync({ episodes, forEntryId }),
   };
 }

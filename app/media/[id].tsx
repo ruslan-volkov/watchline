@@ -118,18 +118,19 @@ export default function MediaDetail() {
   };
 
   const toggleEpisode = async (ref: EpisodeRef) => {
-    if (!entry) {
-      await ensureEntryId('watching');
-      return; // entry now exists; the tap can be repeated with progress bound
-    }
+    // First tap on an untracked title: create the entry and keep going, so the
+    // tap does what it looks like it does instead of needing a second one.
+    const id = await ensureEntryId('watching');
+    if (!id) return;
+    setActiveEntryId(id);
     if (progress.isWatched(ref.seasonNumber, ref.episodeNumber)) {
-      await progress.unmark([ref]);
+      await progress.unmark([ref], id);
       return;
     }
     const plan = planCascade(seasons, ref, progress.watchedKeys);
     const markOne = async () => {
       tapHaptic();
-      await progress.mark([ref]);
+      await progress.mark([ref], id);
     };
     // No earlier unwatched episodes → just mark this one, no prompt.
     if (plan.extra === 0) {
@@ -141,11 +142,11 @@ export default function MediaDetail() {
     // forcing the cascade.
     const markAll = async () => {
       tapHaptic();
-      await progress.mark(plan.toMark);
+      await progress.mark(plan.toMark, id);
       setToast({
         message: `${plan.toMark.length} épisodes marqués vus`,
         onUndo: () => {
-          void progress.unmark(plan.toMark);
+          void progress.unmark(plan.toMark, id);
         },
       });
     };
@@ -163,21 +164,24 @@ export default function MediaDetail() {
   };
 
   const toggleSeason = async (episodes: { seasonNumber: number; episodeNumber: number }[]) => {
-    if (!entry) {
-      await ensureEntryId('watching');
-      return;
-    }
+    // As above: an untracked title is added and the season is checked in one tap.
+    const id = await ensureEntryId('watching');
+    if (!id) return;
+    setActiveEntryId(id);
     const refs = episodes.map((e) => ({
       seasonNumber: e.seasonNumber,
       episodeNumber: e.episodeNumber,
     }));
     const allWatched = refs.every((r) => progress.isWatched(r.seasonNumber, r.episodeNumber));
     if (allWatched) {
-      await progress.unmark(refs);
+      await progress.unmark(refs, id);
     } else {
       // Deliberate bulk action — mark every unwatched episode of the season, no dialog.
       successHaptic();
-      await progress.mark(refs.filter((r) => !progress.isWatched(r.seasonNumber, r.episodeNumber)));
+      await progress.mark(
+        refs.filter((r) => !progress.isWatched(r.seasonNumber, r.episodeNumber)),
+        id,
+      );
     }
   };
 
