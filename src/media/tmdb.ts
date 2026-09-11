@@ -53,7 +53,9 @@ function toSummary(item: TmdbSearchItem, forced?: MediaType): MediaSummary | nul
     title: (mediaType === 'movie' ? item.title : item.name) ?? item.title ?? item.name ?? 'Sans titre',
     posterPath: posterUrl(item.poster_path),
     backdropPath: item.backdrop_path ? `${BACKDROP}${item.backdrop_path}` : null,
-    releaseDate: (item.release_date || item.first_air_date) ?? null,
+    // TMDB sends "" (not null) for unannounced dates, and "" is not a valid
+    // Postgres date — collapse it to null.
+    releaseDate: item.release_date || item.first_air_date || null,
     overview: item.overview || undefined,
   };
 }
