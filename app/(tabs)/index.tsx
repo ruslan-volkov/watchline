@@ -36,6 +36,7 @@ import {
   daysFromToday,
   proximityBucket,
   releaseSubtitle,
+  RECENT_WINDOW_DAYS,
 } from '@/utils/timeGrouping';
 import type { MediaType } from '@/media/types';
 
@@ -111,12 +112,13 @@ export default function Timeline() {
     const items: UpcomingItem[] = [];
     for (const e of entries ?? []) {
       const isMovie = e.media.media_type === 'movie';
-      // Movie / series premiere from the watchlist, releasing today or later.
+      // Movie / series premiere from the watchlist, out within the recent window
+      // or still to come. Older ones drop into "À rattraper".
       if (
         e.status === 'plan_to_watch' &&
         !e.snoozed &&
         e.media.release_date &&
-        daysFromToday(e.media.release_date) >= 0
+        daysFromToday(e.media.release_date) >= -RECENT_WINDOW_DAYS
       ) {
         items.push({
           key: `entry-${e.id}`,
@@ -134,11 +136,12 @@ export default function Timeline() {
         });
       }
     }
-    // Next unwatched episode of watching series, airing today or later. Episodes
-    // that aired before today belong to the "À rattraper" section instead.
+    // Next unwatched episode of watching series: still to come, or aired within
+    // the recent window — a fresh episode shouldn't vanish into the backlog the
+    // morning after it drops. Older ones belong to "À rattraper".
     for (const c of cards) {
       const ep = c.nextEpisode;
-      if (ep?.airDate && daysFromToday(ep.airDate) >= 0) {
+      if (ep?.airDate && daysFromToday(ep.airDate) >= -RECENT_WINDOW_DAYS) {
         items.push({
           key: `ep-${c.entry.id}`,
           date: ep.airDate,
@@ -177,8 +180,9 @@ export default function Timeline() {
     });
   }, [upcoming]);
 
-  // Overdue and unwatched: titles out before today + the next overdue episode of
-  // each series. Anything landing today lives in the timeline's "Aujourd'hui".
+  // Long overdue and unwatched: titles out more than RECENT_WINDOW_DAYS ago + the
+  // next such episode of each series. Anything more recent (today included) stays
+  // in the timeline above, under its own "sortis cette semaine" style bucket.
   const backlog = useMemo(() => {
     const items: {
       key: string;
@@ -206,7 +210,7 @@ export default function Timeline() {
     for (const e of entries ?? []) {
       if (e.status === 'plan_to_watch' && !e.snoozed) {
         const rd = e.media.release_date;
-        if (!rd || daysFromToday(rd) < 0) {
+        if (!rd || daysFromToday(rd) < -RECENT_WINDOW_DAYS) {
           const isMovie = e.media.media_type === 'movie';
           items.push({
             key: `p-${e.id}`,
@@ -224,14 +228,14 @@ export default function Timeline() {
       }
     }
 
-    // Series: the next episode to watch, only once it's overdue — aired strictly
-    // before today. An episode with no air date isn't out yet (a season TMDB has
-    // announced but not scheduled), so it belongs nowhere until it gets a date.
-    // Today's airings show under "Aujourd'hui" in the timeline above.
+    // Series: the next episode to watch, only once it's long overdue — aired more
+    // than RECENT_WINDOW_DAYS ago. An episode with no air date isn't out yet (a
+    // season TMDB has announced but not scheduled), so it belongs nowhere until it
+    // gets a date. Recent airings show in the timeline above.
     for (const c of cards) {
       const ep = c.nextEpisode;
       if (!ep) continue;
-      const aired = !!ep.airDate && daysFromToday(ep.airDate) < 0;
+      const aired = !!ep.airDate && daysFromToday(ep.airDate) < -RECENT_WINDOW_DAYS;
       if (!aired) continue;
       items.push({
         key: `s-${c.entry.id}`,

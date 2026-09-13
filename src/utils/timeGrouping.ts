@@ -39,10 +39,20 @@ export function daysFromToday(isoDate: string): number {
   return Math.round((target.getTime() - today.getTime()) / 86_400_000);
 }
 
-/** Proximity bucket label — never a raw calendar date. */
+/** How far back a release still counts as "just out" and stays in the timeline
+ *  instead of dropping into "À rattraper". */
+export const RECENT_WINDOW_DAYS = 14;
+
+export const RECENT = 'Sortis récemment';
+
+/** Proximity bucket label — never a raw calendar date. Releases up to
+ *  RECENT_WINDOW_DAYS old share one bucket, ahead of "Aujourd'hui"; each row's
+ *  subtitle carries the precise "il y a X jours". */
 export function proximityBucket(isoDate: string): string {
   const d = daysFromToday(isoDate);
-  if (d <= 0) return "Aujourd'hui";
+  if (d < -RECENT_WINDOW_DAYS) return 'Plus ancien';
+  if (d < 0) return RECENT;
+  if (d === 0) return "Aujourd'hui";
   if (d === 1) return 'Demain';
   if (d < 7) return `Dans ${d} jours`;
   if (d < 14) return 'La semaine prochaine';
@@ -53,14 +63,21 @@ export function proximityBucket(isoDate: string): string {
 /** Contextual one-liner for a title's upcoming release. */
 export function releaseSubtitle(isoDate: string, kind: 'movie' | 'episode', label?: string): string {
   const d = daysFromToday(isoDate);
-  const when =
-    d <= 0 ? "aujourd'hui" : d === 1 ? 'demain' : d < 7 ? `dans ${d} jours` : `dans ${Math.round(d / 7)} sem.`;
-  if (kind === 'movie') return d <= 0 ? 'Sort aujourd’hui' : `Sort ${when}`;
   const ep = label ? `${label} ` : '';
-  return d <= 0 ? `${ep}disponible` : `${ep}${when}`;
+  // Already out: say how long it's been waiting rather than "disponible", which
+  // reads the same on day 0 and day 12.
+  if (d < 0) {
+    const since = d === -1 ? 'hier' : `il y a ${-d} jours`;
+    return kind === 'movie' ? `Sorti ${since}` : `${ep}dispo ${since}`;
+  }
+  const when =
+    d === 0 ? "aujourd'hui" : d === 1 ? 'demain' : d < 7 ? `dans ${d} jours` : `dans ${Math.round(d / 7)} sem.`;
+  if (kind === 'movie') return d === 0 ? 'Sort aujourd’hui' : `Sort ${when}`;
+  return d === 0 ? `${ep}disponible` : `${ep}${when}`;
 }
 
 const BUCKET_ORDER = [
+  RECENT,
   "Aujourd'hui",
   'Demain',
   'Dans 2 jours',
