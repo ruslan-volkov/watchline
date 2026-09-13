@@ -127,25 +127,32 @@ export default function Search() {
         </Pressable>
       </View>
 
+      {/* Tapping anywhere outside the field closes the keyboard — with no list to
+          scroll, these branches are the only thing left to tap. */}
       {loading ? (
-        <View style={styles.center}>
+        <Pressable style={styles.center} onPress={Keyboard.dismiss} accessible={false}>
           <ActivityIndicator color={colors.accentInk} />
-        </View>
+        </Pressable>
       ) : listData.length === 0 ? (
-        <EmptyState
-          icon="film-outline"
-          title={showTrending ? 'Cherche un titre' : 'Aucun résultat'}
-          message={
-            showTrending
-              ? 'Tape le nom d’un film ou d’une série pour l’ajouter à ton suivi.'
-              : 'Essaie un autre nom — orthographe ou titre original.'
-          }
-        />
+        <Pressable style={styles.fill} onPress={Keyboard.dismiss} accessible={false}>
+          <EmptyState
+            icon="film-outline"
+            title={showTrending ? 'Cherche un titre' : 'Aucun résultat'}
+            message={
+              showTrending
+                ? 'Tape le nom d’un film ou d’une série pour l’ajouter à ton suivi.'
+                : 'Essaie un autre nom — orthographe ou titre original.'
+            }
+          />
+        </Pressable>
       ) : (
         <FlatList
           data={listData}
           keyExtractor={(item) => `${item.mediaType}-${item.tmdbId}`}
+          // Taps on rows still go through; scrolling the results puts the
+          // keyboard away, as everywhere else on iOS.
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           ListHeaderComponent={
             showTrending ? <SectionHeader>Tendances cette semaine</SectionHeader> : null
           }
@@ -173,7 +180,12 @@ export default function Search() {
                     </Pressable>
                   ) : (
                     <Pressable
-                      onPress={() => setSelected(item)}
+                      onPress={() => {
+                        // The status sheet slides up from the bottom — the
+                        // keyboard would otherwise cover it.
+                        Keyboard.dismiss();
+                        setSelected(item);
+                      }}
                       hitSlop={8}
                       accessibilityRole="button"
                       accessibilityLabel="Ajouter"
@@ -234,6 +246,7 @@ export default function Search() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  fill: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
