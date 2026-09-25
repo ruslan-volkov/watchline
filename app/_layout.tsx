@@ -1,8 +1,9 @@
 import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, useRouter, useSegments } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { ActivityIndicator, Alert, View } from 'react-native';
+import { Alert, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -10,6 +11,19 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { DensityProvider } from '@/contexts/DensityContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { usePushRegistration } from '@/features/notifications/usePushRegistration';
+
+// Splash grounds, kept in sync with the expo-splash-screen plugin in app.json.
+const SPLASH_LIGHT = '#F5C518';
+const SPLASH_DARK = '#17140C';
+
+// Hold the native splash (brand ground + timeline mark) until auth has settled.
+// Otherwise it hides as soon as JS mounts and the app shows a bare white screen
+// with a spinner while the session loads. Called at module scope, not in a hook:
+// by the time a component runs, the splash may already be gone.
+SplashScreen.preventAutoHideAsync().catch(() => {
+  // Already hidden — nothing left to hold.
+});
+SplashScreen.setOptions({ fade: true, duration: 250 });
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
@@ -61,11 +75,16 @@ function RootNavigator() {
 
   const gating = initializing || (session && !profile);
 
+  // Reveal the app only once there's something real to show.
+  useEffect(() => {
+    if (!gating) SplashScreen.hide();
+  }, [gating]);
+
   if (gating) {
+    // The native splash still covers this view; paint it the same ground so an
+    // early hide lands on the brand colour instead of a white flash.
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg }}>
-        <ActivityIndicator color={colors.accentInk} />
-      </View>
+      <View style={{ flex: 1, backgroundColor: scheme === 'dark' ? SPLASH_DARK : SPLASH_LIGHT }} />
     );
   }
 
