@@ -40,6 +40,16 @@ export interface MediaDetails extends MediaSummary {
   runtimeMinutes?: number | null;
   /** tv season count. */
   seasonCount?: number | null;
+  /** Raw TMDB production status — "Released", "Ended", "Canceled",
+   *  "Returning Series", "In Production", "Planned". Always English, whatever
+   *  the request language. */
+  status?: string | null;
+  /** tv: date the most recent episode aired. */
+  lastAirDate?: string | null;
+  /** tv: next scheduled episode, when TMDB has dated one. */
+  nextEpisodeToAir?: EpisodeInfo | null;
+  /** tv: most recent episode that aired. */
+  lastEpisodeToAir?: EpisodeInfo | null;
 }
 
 /**

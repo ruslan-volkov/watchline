@@ -28,6 +28,7 @@ import { useWatchEntries } from '@/features/watch/useWatchEntries';
 import { mediaProvider } from '@/media/provider';
 import { successHaptic, tapHaptic } from '@/lib/haptics';
 import { posterAccentColor } from '@/theme/posterColors';
+import { releaseLine } from '@/features/media/releaseLine';
 import { statusLabels } from '@/theme/tokens';
 import { airDateLabel, daysFromToday } from '@/utils/timeGrouping';
 import type { MediaType, WatchStatus } from '@/media/types';
@@ -249,6 +250,9 @@ export default function MediaDetail() {
     metaParts.push(`${details.seasonCount} saison${details.seasonCount > 1 ? 's' : ''}`);
   }
   const genres = (details.genres ?? []).slice(0, 3);
+  // Where the title stands: a movie's release date, a series' return date, or
+  // whether it is over for good.
+  const release = releaseLine(details);
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.bg }]} edges={['top']}>
@@ -289,7 +293,21 @@ export default function MediaDetail() {
           />
           <View style={styles.heroText}>
             <Text style={[styles.title, { color: colors.textPrimary }]}>{details.title}</Text>
-            <Text style={[styles.meta, { color: colors.textMeta }]}>{metaParts.join(' · ')}</Text>
+            <Text
+              style={[styles.meta, { color: colors.textMeta, marginBottom: release ? 3 : 8 }]}
+            >
+              {metaParts.join(' · ')}
+            </Text>
+            {release ? (
+              <Text
+                style={[
+                  styles.release,
+                  { color: release.upcoming ? colors.accentInk : colors.textSecondary },
+                ]}
+              >
+                {release.text}
+              </Text>
+            ) : null}
             {genres.length > 0 ? (
               <View style={styles.genres}>
                 {genres.map((g) => (
@@ -539,6 +557,7 @@ const styles = StyleSheet.create({
   heroText: { flex: 1, marginLeft: 16 },
   title: { fontSize: 22, fontWeight: '700', marginBottom: 4 },
   meta: { fontSize: 13, fontWeight: '600', marginBottom: 8 },
+  release: { fontSize: 13, fontWeight: '600', marginBottom: 8 },
   genres: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
   genreChip: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999 },
   genreText: { fontSize: 11, fontWeight: '600' },

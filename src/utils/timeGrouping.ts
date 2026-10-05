@@ -20,6 +20,18 @@ export function dayMonthLabel(isoDate: string): string {
   return `${d.getDate()} ${MONTHS_FR[d.getMonth()]}`;
 }
 
+const MONTHS_LOWER = [
+  'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+  'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
+];
+
+/** "9 juillet 2025" / "1er mars 2026" — full date, for a title's release line. */
+export function longDateLabel(isoDate: string): string {
+  const d = new Date(`${isoDate}T00:00:00`);
+  const day = d.getDate() === 1 ? '1er' : String(d.getDate());
+  return `${day} ${MONTHS_LOWER[d.getMonth()]} ${d.getFullYear()}`;
+}
+
 /** Short French label for a future air date ("Demain", "Dans 4 jours", "12 août"). */
 export function airDateLabel(isoDate: string): string {
   const d = daysFromToday(isoDate);

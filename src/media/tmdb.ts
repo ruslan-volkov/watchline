@@ -73,6 +73,16 @@ interface TmdbEpisode {
   air_date: string | null;
 }
 
+function toEpisode(e: TmdbEpisode | null | undefined): EpisodeInfo | null {
+  if (!e) return null;
+  return {
+    seasonNumber: e.season_number,
+    episodeNumber: e.episode_number,
+    title: e.name || `Épisode ${e.episode_number}`,
+    airDate: e.air_date || null,
+  };
+}
+
 /** Real TMDB implementation of the app's MediaProvider seam. */
 export const tmdbMediaProvider: MediaProvider = {
   async search(query: string): Promise<MediaSummary[]> {
@@ -97,7 +107,9 @@ export const tmdbMediaProvider: MediaProvider = {
 
   async getDetails(tmdbId: number, mediaType: MediaType): Promise<MediaDetails | null> {
     if (mediaType === 'movie') {
-      const m = await tmdb<TmdbSearchItem & { runtime?: number; genres?: { name: string }[] }>(
+      const m = await tmdb<
+        TmdbSearchItem & { runtime?: number; genres?: { name: string }[]; status?: string }
+      >(
         `/movie/${tmdbId}`,
       );
       const summary = toSummary(m, 'movie');
@@ -106,6 +118,7 @@ export const tmdbMediaProvider: MediaProvider = {
         ...summary,
         genres: (m.genres ?? []).map((g) => g.name),
         runtimeMinutes: m.runtime ?? null,
+        status: m.status ?? null,
       };
     }
 
@@ -114,6 +127,10 @@ export const tmdbMediaProvider: MediaProvider = {
         seasons?: TmdbSeasonSummary[];
         genres?: { name: string }[];
         number_of_seasons?: number;
+        status?: string;
+        last_air_date?: string | null;
+        next_episode_to_air?: TmdbEpisode | null;
+        last_episode_to_air?: TmdbEpisode | null;
       }
     >(`/tv/${tmdbId}`);
     const summary = toSummary(show, 'tv');
@@ -145,6 +162,10 @@ export const tmdbMediaProvider: MediaProvider = {
       seasons: seasons.filter((s) => s.episodes.length > 0),
       genres: (show.genres ?? []).map((g) => g.name),
       seasonCount: show.number_of_seasons ?? seasons.length,
+      status: show.status ?? null,
+      lastAirDate: show.last_air_date || null,
+      nextEpisodeToAir: toEpisode(show.next_episode_to_air),
+      lastEpisodeToAir: toEpisode(show.last_episode_to_air),
     };
   },
 };
