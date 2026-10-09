@@ -94,6 +94,17 @@ describe('releaseLine — series', () => {
     expect(next?.text).toContain('S2E4');
   });
 
+  it('calls a never-aired series a premiere, not a comeback', () => {
+    const line = releaseLine({
+      ...base,
+      status: 'Returning Series',
+      nextEpisodeToAir: ep(1, 1, iso(14)),
+    });
+    expect(line?.text).toMatch(/^Première le /);
+    expect(line?.text).not.toContain('Reprise');
+    expect(line?.upcoming).toBe(true);
+  });
+
   it('admits when a running series has nothing scheduled', () => {
     expect(
       releaseLine({

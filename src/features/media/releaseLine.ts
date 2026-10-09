@@ -45,15 +45,19 @@ function tvLine(details: MediaDetails): ReleaseLine | null {
   const lastDate = last?.airDate ?? details.lastAirDate ?? null;
   const status = details.status ?? '';
 
-  // A dated next episode is the most useful thing we can say. A jump in season
-  // number means the series is coming back, not merely continuing.
+  // A dated next episode is the most useful thing we can say.
   if (next?.airDate) {
-    const returning = !last || next.seasonNumber > last.seasonNumber;
-    const label = `S${next.seasonNumber}E${next.episodeNumber}`;
+    // Nothing aired yet: this is the series' own premiere, not a comeback.
+    if (!last) return { text: `Première le ${on(next.airDate)}`, upcoming: true };
+    // A jump in season number means it is coming back, not merely continuing.
+    if (next.seasonNumber > last.seasonNumber) {
+      return {
+        text: `Reprise le ${on(next.airDate)} · saison ${next.seasonNumber}`,
+        upcoming: true,
+      };
+    }
     return {
-      text: returning
-        ? `Reprise le ${on(next.airDate)} · saison ${next.seasonNumber}`
-        : `Prochain épisode le ${on(next.airDate)} · ${label}`,
+      text: `Prochain épisode le ${on(next.airDate)} · S${next.seasonNumber}E${next.episodeNumber}`,
       upcoming: true,
     };
   }
