@@ -52,6 +52,15 @@ export interface MediaDetails extends MediaSummary {
   lastEpisodeToAir?: EpisodeInfo | null;
 }
 
+/** Cheap comeback probe for a series: one request, no episode lists. */
+export interface ShowStatus {
+  /** Raw TMDB status — see MediaDetails.status. */
+  status: string | null;
+  lastAirDate: string | null;
+  nextEpisodeToAir: EpisodeInfo | null;
+  lastEpisodeToAir: EpisodeInfo | null;
+}
+
 /**
  * The single seam between the app and the media source. The mock implements it
  * today; a real TMDB client will implement the same interface later with zero
@@ -60,6 +69,9 @@ export interface MediaDetails extends MediaSummary {
 export interface MediaProvider {
   search(query: string): Promise<MediaSummary[]>;
   getDetails(tmdbId: number, mediaType: MediaType): Promise<MediaDetails | null>;
+  /** Series status alone — for checking whether a finished show came back
+   *  without pulling every season's episodes. */
+  getShowStatus(tmdbId: number): Promise<ShowStatus | null>;
   /** Popular titles this week, for the empty search state. */
   trending(): Promise<MediaSummary[]>;
 }

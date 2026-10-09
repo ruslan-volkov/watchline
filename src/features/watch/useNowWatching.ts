@@ -25,48 +25,73 @@ function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/** Episode lists change when a season is announced or dated, not minute to
+ *  minute. An hour of tolerance spares refetching every season of every series
+ *  on each cold start; pull-to-refresh still forces it. */
+const DETAILS_STALE_TIME = 60 * 60_000;
+
+/** A finished series is only watched for a comeback — twice a day is plenty. */
+const STATUS_STALE_TIME = 12 * 60 * 60_000;
+
 /**
  * Enriches "watching" TV entries with episode totals + progress so the home and
  * watchlist rows can render bars and the "next episode" check.
  *
- * Completed series are loaded too — not to display them, but to detect ones that
- * have since gained new episodes (a returning show) and reopen them, so a new
- * season resurfaces instead of staying hidden behind the "completed" status.
+ * Completed series are watched too — not to display them, but to catch ones that
+ * have gained a later season, so a returning show resurfaces instead of staying
+ * hidden behind the "completed" status.
  */
 export function useNowWatching(): { cards: NowWatchingCardData[]; isLoading: boolean } {
   const { data: entries } = useWatchEntries();
   const qc = useQueryClient();
 
-  const tracked = useMemo(
-    () =>
-      (entries ?? []).filter(
-        (e) =>
-          e.media.media_type === 'tv' &&
-          !e.snoozed &&
-          (e.status === 'watching' || e.status === 'completed'),
-      ),
+  const tv = useMemo(
+    () => (entries ?? []).filter((e) => e.media.media_type === 'tv' && !e.snoozed),
     [entries],
   );
+  const watching = useMemo(() => tv.filter((e) => e.status === 'watching'), [tv]);
+  const completed = useMemo(() => tv.filter((e) => e.status === 'completed'), [tv]);
 
+  // Series in progress need their episode lists: the bars, the next episode and
+  // the catch-up count are all episode-level.
   const detailQueries = useQueries({
-    queries: tracked.map((e) => ({
+    queries: watching.map((e) => ({
       queryKey: ['media_details', 'tv', e.media.tmdb_id],
       queryFn: () => mediaProvider.getDetails(e.media.tmdb_id, 'tv'),
-      staleTime: 5 * 60_000,
+      staleTime: DETAILS_STALE_TIME,
     })),
   });
 
-  const entryIds = useMemo(() => tracked.map((e) => e.id), [tracked]);
+  // Finished ones do not. The show's own status is one request and a kilobyte,
+  // where its episode lists are one request per season and tens of kilobytes —
+  // paid on every launch, forever, for series that rarely move again.
+  const statusQueries = useQueries({
+    queries: completed.map((e) => ({
+      queryKey: ['show_status', 'tv', e.media.tmdb_id],
+      queryFn: () => mediaProvider.getShowStatus(e.media.tmdb_id),
+      staleTime: STATUS_STALE_TIME,
+    })),
+  });
+
+  // Progress covers completed entries too: the seasons already watched are what
+  // tells a comeback apart from an episode that was always there.
+  const entryIds = useMemo(
+    () => [...watching, ...completed].map((e) => e.id),
+    [watching, completed],
+  );
   const progressQuery = useQuery({
     queryKey: ['progress_all', entryIds],
     queryFn: () => fetchProgressForEntries(entryIds),
     enabled: entryIds.length > 0,
   });
 
-  const computed = useMemo(() => {
+  const watchedSeasonMax = (rows: { entry_id: string; season_number: number }[], id: string) =>
+    rows.filter((r) => r.entry_id === id).reduce((max, r) => Math.max(max, r.season_number), 0);
+
+  const cards = useMemo<NowWatchingCardData[]>(() => {
     const rows = progressQuery.data ?? [];
     const now = todayIso();
-    return tracked.map((entry, i) => {
+    return watching.map((entry, i) => {
       const details = detailQueries[i]?.data as MediaDetails | null | undefined;
       const seasons = details?.seasons ?? [];
       const all = orderEpisodes(seasons);
@@ -82,14 +107,6 @@ export function useNowWatching(): { cards: NowWatchingCardData[]; isLoading: boo
       );
       const nextEpisode = unwatched[0] ?? null;
       const airedUnwatched = unwatched.filter((ep) => ep.airDate && ep.airDate <= now).length;
-      // Only meaningful once details actually loaded, otherwise an empty episode
-      // list would look like "nothing new".
-      const maxWatchedSeason = rows
-        .filter((r) => r.entry_id === entry.id)
-        .reduce((max, r) => Math.max(max, r.season_number), 0);
-      const hasNewEpisodes =
-        details != null &&
-        hasReturned(unwatched, { finishedAt: entry.finished_at, today: now, maxWatchedSeason });
       const subtitle = nextEpisode
         ? `S${nextEpisode.seasonNumber}E${nextEpisode.episodeNumber} · ${watched}/${total || '?'}`
         : total
@@ -103,33 +120,47 @@ export function useNowWatching(): { cards: NowWatchingCardData[]; isLoading: boo
         nextEpisode,
         airedUnwatched,
         subtitle,
-        hasNewEpisodes,
       };
     });
-  }, [tracked, detailQueries, progressQuery.data]);
+  }, [watching, detailQueries, progressQuery.data]);
 
-  // Reopen returning series that gained episodes since being completed. Guarded
-  // by a ref so the write happens once per entry, not on every render.
+  const returning = useMemo(() => {
+    const rows = progressQuery.data ?? [];
+    const now = todayIso();
+    const ids: string[] = [];
+    completed.forEach((entry, i) => {
+      const probe = statusQueries[i]?.data;
+      if (!probe) return;
+      // The show endpoint only reports the episodes bracketing the run. For a
+      // completed series anything in a later season is unwatched by definition,
+      // so those two are enough to spot a comeback — same rule as hasReturned.
+      const candidates = [probe.nextEpisodeToAir, probe.lastEpisodeToAir].filter(
+        (e): e is EpisodeInfo => e != null,
+      );
+      const returned = hasReturned(candidates, {
+        finishedAt: entry.finished_at,
+        today: now,
+        maxWatchedSeason: watchedSeasonMax(rows, entry.id),
+      });
+      if (returned) ids.push(entry.id);
+    });
+    return ids;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [completed, statusQueries, progressQuery.data]);
+
+  // Guarded by a ref so the write happens once per entry, not on every render.
   const reopening = useRef<Set<string>>(new Set());
   useEffect(() => {
-    for (const c of computed) {
-      if (c.entry.status !== 'completed' || !c.hasNewEpisodes) continue;
-      if (reopening.current.has(c.entry.id)) continue;
-      reopening.current.add(c.entry.id);
-      updateEntry({ entryId: c.entry.id, patch: { status: 'watching', finished_at: null } })
+    for (const id of returning) {
+      if (reopening.current.has(id)) continue;
+      reopening.current.add(id);
+      updateEntry({ entryId: id, patch: { status: 'watching', finished_at: null } })
         .then(() => qc.invalidateQueries({ queryKey: entriesKey }))
-        .catch(() => reopening.current.delete(c.entry.id));
+        .catch(() => reopening.current.delete(id));
     }
-  }, [computed, qc]);
+  }, [returning, qc]);
 
-  const cards = useMemo<NowWatchingCardData[]>(
-    () =>
-      computed
-        .filter((c) => c.entry.status === 'watching')
-        .map(({ hasNewEpisodes: _ignored, ...card }) => card),
-    [computed],
-  );
-
+  // Status probes never gate the UI — they only ever reopen a series later.
   const isLoading = progressQuery.isLoading || detailQueries.some((q) => q.isLoading);
   return { cards, isLoading };
 }

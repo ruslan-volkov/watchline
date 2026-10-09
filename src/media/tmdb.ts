@@ -5,6 +5,7 @@ import type {
   MediaSummary,
   MediaType,
   SeasonInfo,
+  ShowStatus,
 } from './types';
 
 const BASE = 'https://api.themoviedb.org/3';
@@ -103,6 +104,21 @@ export const tmdbMediaProvider: MediaProvider = {
     return data.results
       .map((r) => toSummary(r))
       .filter((s): s is MediaSummary => s !== null);
+  },
+
+  async getShowStatus(tmdbId: number): Promise<ShowStatus | null> {
+    const show = await tmdb<{
+      status?: string;
+      last_air_date?: string | null;
+      next_episode_to_air?: TmdbEpisode | null;
+      last_episode_to_air?: TmdbEpisode | null;
+    }>(`/tv/${tmdbId}`);
+    return {
+      status: show.status ?? null,
+      lastAirDate: show.last_air_date || null,
+      nextEpisodeToAir: toEpisode(show.next_episode_to_air),
+      lastEpisodeToAir: toEpisode(show.last_episode_to_air),
+    };
   },
 
   async getDetails(tmdbId: number, mediaType: MediaType): Promise<MediaDetails | null> {

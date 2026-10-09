@@ -196,6 +196,22 @@ export const mockMediaProvider: MediaProvider = {
     return delay(found ?? null);
   },
 
+  async getShowStatus(tmdbId: number) {
+    // Derived from the mock's own episode lists, so the shape matches TMDB's.
+    const details = await mockMediaProvider.getDetails(tmdbId, 'tv');
+    const today = new Date().toISOString().slice(0, 10);
+    const dated = (details?.seasons ?? [])
+      .flatMap((s) => s.episodes)
+      .filter((e) => !!e.airDate);
+    const aired = dated.filter((e) => e.airDate! <= today);
+    return {
+      status: details?.status ?? null,
+      lastAirDate: aired[aired.length - 1]?.airDate ?? null,
+      lastEpisodeToAir: aired[aired.length - 1] ?? null,
+      nextEpisodeToAir: dated.find((e) => e.airDate! > today) ?? null,
+    };
+  },
+
   async trending(): Promise<MediaSummary[]> {
     return delay(ALL.map(toSummary));
   },
