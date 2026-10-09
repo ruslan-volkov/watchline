@@ -10,6 +10,7 @@ import {
   useState,
 } from 'react';
 
+import { queryPersister } from '@/lib/queryPersist';
 import { supabase } from '@/lib/supabase';
 import type { Tables, TablesUpdate } from '@/types/db';
 
@@ -68,6 +69,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // so the previous account's entries/friends don't leak into the new one.
       if (nextId !== currentUserId.current) {
         qc.clear();
+        // Drop the disk copy too, or the previous account's lists would be
+        // restored on the next launch.
+        void queryPersister.removeClient();
         currentUserId.current = nextId;
       }
       setSession(next);

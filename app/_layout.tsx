@@ -1,4 +1,5 @@
-import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MutationCache, QueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -11,6 +12,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { DensityProvider } from '@/contexts/DensityContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { usePushRegistration } from '@/features/notifications/usePushRegistration';
+import { QUERY_CACHE_MAX_AGE, queryPersister } from '@/lib/queryPersist';
 
 // Splash grounds, kept in sync with the expo-splash-screen plugin in app.json.
 const SPLASH_LIGHT = '#F5C518';
@@ -105,7 +107,18 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <QueryClientProvider client={queryClient}>
+        <PersistQueryClientProvider
+          client={queryClient}
+          persistOptions={{
+            persister: queryPersister,
+            maxAge: QUERY_CACHE_MAX_AGE,
+            // Only successful queries are worth restoring; a failed fetch should
+            // retry on the next launch, not come back as stale truth.
+            dehydrateOptions: {
+              shouldDehydrateQuery: (query) => query.state.status === 'success',
+            },
+          }}
+        >
           <AuthProvider>
             <ThemeProvider>
               <DensityProvider>
@@ -113,7 +126,7 @@ export default function RootLayout() {
               </DensityProvider>
             </ThemeProvider>
           </AuthProvider>
-        </QueryClientProvider>
+        </PersistQueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

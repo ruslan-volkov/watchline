@@ -2,14 +2,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   RefreshControl,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import Animated from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { AnimatedCheck } from '@/components/AnimatedCheck';
 import { BacklogRow } from '@/components/BacklogRow';
@@ -19,6 +18,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { Fab } from '@/components/Fab';
 import { RatingSheet } from '@/components/RatingSheet';
 import { Screen } from '@/components/Screen';
+import { SkeletonList } from '@/components/SkeletonRow';
 import { Toast, type ToastState } from '@/components/Toast';
 import { SectionHeader } from '@/components/SectionHeader';
 import { UpcomingCalendar, type CalendarItem } from '@/components/UpcomingCalendar';
@@ -305,8 +305,8 @@ export default function Timeline() {
     <Screen padded={false}>
       {!hasContent ? (
         isLoading ? (
-          <View style={styles.loading}>
-            <ActivityIndicator color={colors.accentInk} />
+          <View style={{ paddingHorizontal: spacing.screenPadding }}>
+            <SkeletonList />
           </View>
         ) : (
           <EmptyState
@@ -376,7 +376,7 @@ export default function Timeline() {
           ) : (
             <>
           {backlog.length > 0 ? (
-            <View>
+            <Animated.View entering={FadeIn.duration(260)}>
               <Pressable
                 onPress={() => setBacklogOpen((v) => !v)}
                 style={styles.collapseHeader}
@@ -428,11 +428,11 @@ export default function Timeline() {
                   />
                 ))}
               </Collapsible>
-            </View>
+            </Animated.View>
           ) : null}
 
           {grouped.map(([bucket, items]) => (
-            <View key={bucket}>
+            <Animated.View key={bucket} entering={FadeIn.duration(260)}>
               <SectionHeader>{bucket}</SectionHeader>
               {items.map((item) => {
                 // Out today → offer the check straight away; the date would just
@@ -485,7 +485,7 @@ export default function Timeline() {
                   />
                 );
               })}
-            </View>
+            </Animated.View>
           ))}
 
           {backlog.length === 0 && grouped.length === 0 ? (

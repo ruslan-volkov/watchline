@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -17,6 +16,7 @@ import { Collapsible } from '@/components/Collapsible';
 import { EmptyState } from '@/components/EmptyState';
 import { Fab } from '@/components/Fab';
 import { Screen } from '@/components/Screen';
+import { SkeletonList } from '@/components/SkeletonRow';
 import { SectionHeader } from '@/components/SectionHeader';
 import { useDensity } from '@/contexts/DensityContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -168,8 +168,8 @@ export default function Watchlist() {
 
       {items.length === 0 && watching.length === 0 ? (
         isLoading ? (
-          <View style={styles.loading}>
-            <ActivityIndicator color={colors.accentInk} />
+          <View style={{ paddingHorizontal: spacing.screenPadding }}>
+            <SkeletonList />
           </View>
         ) : (
           <EmptyState
