@@ -38,10 +38,11 @@ const FILTERS: { key: Filter; label: string }[] = [
 
 function subtitleFor(entry: EntryWithMedia): string {
   const { release_date, media_type } = entry.media;
-  if (release_date && daysFromToday(release_date) > 0) {
+  if (!release_date) return 'Date non annoncée';
+  if (daysFromToday(release_date) > 0) {
     return releaseSubtitle(release_date, media_type === 'movie' ? 'movie' : 'episode');
   }
-  return media_type === 'movie' ? 'Disponible' : 'Disponible';
+  return 'Disponible';
 }
 
 /** Collapsible section with a tappable header (title · count + chevron). */

@@ -11,6 +11,11 @@ export interface ReleaseLine {
 const ENDED = new Set(['Ended', 'Canceled']);
 const UNRELEASED = new Set(['Planned', 'In Production', 'Post Production', 'Rumored', 'Pilot']);
 
+/** True when TMDB considers the series finished — over, not merely paused. */
+export function isFinishedSeries(status: string | null | undefined): boolean {
+  return ENDED.has(status ?? '');
+}
+
 function on(isoDate: string): string {
   return longDateLabel(isoDate);
 }

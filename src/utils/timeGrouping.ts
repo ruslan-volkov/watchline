@@ -72,6 +72,14 @@ export function proximityBucket(isoDate: string): string {
   return 'Plus tard';
 }
 
+/**
+ * Out long enough to count as a real backlog item. An undated title is not
+ * late — it is unannounced, and belongs nowhere until TMDB schedules it.
+ */
+export function isOverdue(isoDate: string | null | undefined): boolean {
+  return !!isoDate && daysFromToday(isoDate) < -RECENT_WINDOW_DAYS;
+}
+
 /** Contextual one-liner for a title's upcoming release. */
 export function releaseSubtitle(isoDate: string, kind: 'movie' | 'episode', label?: string): string {
   const d = daysFromToday(isoDate);

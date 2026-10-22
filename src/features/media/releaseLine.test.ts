@@ -1,4 +1,4 @@
-import { releaseLine } from './releaseLine';
+import { isFinishedSeries, releaseLine } from './releaseLine';
 import type { EpisodeInfo, MediaDetails } from '@/media/types';
 
 /** Local ISO date `offset` days from today (noon avoids UTC/DST day flips). */
@@ -52,6 +52,16 @@ describe('releaseLine — movies', () => {
 
   it('says "1er" for the first of the month', () => {
     expect(releaseLine(movie({ releaseDate: '2026-03-01' }))?.text).toContain('1er mars 2026');
+  });
+});
+
+describe('isFinishedSeries', () => {
+  it('separates finished series from running ones', () => {
+    expect(isFinishedSeries('Ended')).toBe(true);
+    expect(isFinishedSeries('Canceled')).toBe(true);
+    expect(isFinishedSeries('Returning Series')).toBe(false);
+    expect(isFinishedSeries('In Production')).toBe(false);
+    expect(isFinishedSeries(null)).toBe(false);
   });
 });
 

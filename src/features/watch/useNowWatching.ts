@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from 'react';
 
 import { fetchProgressForEntries } from '@/features/episodes/api';
 import { episodeKey, orderEpisodes } from '@/features/episodes/cascade';
+import { isFinishedSeries } from '@/features/media/releaseLine';
 import { mediaProvider } from '@/media/provider';
 import type { EpisodeInfo, MediaDetails } from '@/media/types';
 import { hasReturned } from './reopen';
@@ -18,6 +19,9 @@ export interface NowWatchingCardData {
   nextEpisode: EpisodeInfo | null;
   /** Unwatched episodes already aired (air date <= today) — the "catch up" backlog. */
   airedUnwatched: number;
+  /** Nothing to put on a calendar: the next episode has no date, or the series
+   *  is caught up and still running with nothing scheduled. */
+  awaitingDate: boolean;
   subtitle: string;
 }
 
@@ -107,6 +111,11 @@ export function useNowWatching(): { cards: NowWatchingCardData[]; isLoading: boo
       );
       const nextEpisode = unwatched[0] ?? null;
       const airedUnwatched = unwatched.filter((ep) => ep.airDate && ep.airDate <= now).length;
+      // A finished series that is fully watched isn't waiting for anything —
+      // only a running one can owe you a date.
+      const awaitingDate = nextEpisode
+        ? !nextEpisode.airDate
+        : total > 0 && details != null && !isFinishedSeries(details.status);
       const subtitle = nextEpisode
         ? `S${nextEpisode.seasonNumber}E${nextEpisode.episodeNumber} · ${watched}/${total || '?'}`
         : total
@@ -119,6 +128,7 @@ export function useNowWatching(): { cards: NowWatchingCardData[]; isLoading: boo
         progress: total ? watched / total : 0,
         nextEpisode,
         airedUnwatched,
+        awaitingDate,
         subtitle,
       };
     });

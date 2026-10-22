@@ -34,6 +34,7 @@ import {
   bucketRank,
   dayMonthLabel,
   daysFromToday,
+  isOverdue,
   proximityBucket,
   releaseSubtitle,
   RECENT_WINDOW_DAYS,
@@ -80,6 +81,7 @@ export default function Timeline() {
   const [ratingFor, setRatingFor] = useState<{ entryId: string; title: string } | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [backlogOpen, setBacklogOpen] = useState(false);
+  const [undatedOpen, setUndatedOpen] = useState(false);
   const [upcomingView, setUpcomingView] = useState<'list' | 'calendar'>('list');
   const scrollRef = useRef<Animated.ScrollView>(null);
 
@@ -209,8 +211,9 @@ export default function Timeline() {
 
     for (const e of entries ?? []) {
       if (e.status === 'plan_to_watch' && !e.snoozed) {
-        const rd = e.media.release_date;
-        if (!rd || daysFromToday(rd) < -RECENT_WINDOW_DAYS) {
+        // An undated title is unannounced, not late: it waits in the watchlist
+        // until TMDB gives it a date.
+        if (isOverdue(e.media.release_date)) {
           const isMovie = e.media.media_type === 'movie';
           items.push({
             key: `p-${e.id}`,
@@ -235,8 +238,7 @@ export default function Timeline() {
     for (const c of cards) {
       const ep = c.nextEpisode;
       if (!ep) continue;
-      const aired = !!ep.airDate && daysFromToday(ep.airDate) < -RECENT_WINDOW_DAYS;
-      if (!aired) continue;
+      if (!isOverdue(ep.airDate)) continue;
       items.push({
         key: `s-${c.entry.id}`,
         seed: `${c.entry.media.tmdb_id}`,
@@ -254,6 +256,54 @@ export default function Timeline() {
           watched: c.watched,
           total: c.total,
         },
+      });
+    }
+    return items;
+  }, [entries, cards]);
+
+  // Waiting on TMDB for a date: watchlist titles with no release date, and
+  // series in progress whose next episode isn't scheduled. Neither belongs in a
+  // chronological list, and neither is late — hence their own collapsed shelf.
+  const undated = useMemo(() => {
+    const items: {
+      key: string;
+      seed: string;
+      title: string;
+      posterPath: string | null;
+      backdropPath: string | null;
+      subtitle: string;
+      tmdbId: number;
+      mediaType: MediaType;
+    }[] = [];
+
+    for (const e of entries ?? []) {
+      if (e.status !== 'plan_to_watch' || e.snoozed || e.media.release_date) continue;
+      items.push({
+        key: `u-${e.id}`,
+        seed: `${e.media.tmdb_id}`,
+        title: e.media.title,
+        posterPath: e.media.poster_path,
+        backdropPath: e.media.backdrop_path,
+        subtitle: e.media.media_type === 'movie' ? 'Film · sortie non datée' : 'Série · sortie non datée',
+        tmdbId: e.media.tmdb_id,
+        mediaType: e.media.media_type,
+      });
+    }
+
+    for (const c of cards) {
+      if (!c.awaitingDate) continue;
+      const ep = c.nextEpisode;
+      items.push({
+        key: `uw-${c.entry.id}`,
+        seed: `${c.entry.media.tmdb_id}`,
+        title: c.entry.media.title,
+        posterPath: c.entry.media.poster_path,
+        backdropPath: c.entry.media.backdrop_path,
+        subtitle: ep
+          ? `S${ep.seasonNumber}E${ep.episodeNumber} · date non annoncée`
+          : 'À jour · suite non datée',
+        tmdbId: c.entry.media.tmdb_id,
+        mediaType: 'tv',
       });
     }
     return items;
@@ -488,7 +538,37 @@ export default function Timeline() {
             </Animated.View>
           ))}
 
-          {backlog.length === 0 && grouped.length === 0 ? (
+          {undated.length > 0 ? (
+            <Animated.View entering={FadeIn.duration(260)}>
+              <Pressable
+                onPress={() => setUndatedOpen((v) => !v)}
+                style={styles.collapseHeader}
+                accessibilityRole="button"
+              >
+                <SectionHeader>{`Pas encore daté · ${undated.length}`}</SectionHeader>
+                <Ionicons
+                  name={undatedOpen ? 'chevron-up' : 'chevron-down'}
+                  size={18}
+                  color={colors.textMeta}
+                />
+              </Pressable>
+              <Collapsible open={undatedOpen}>
+                {undated.map((item) => (
+                  <CardRow
+                    key={item.key}
+                    seed={item.seed}
+                    title={item.title}
+                    posterPath={item.posterPath}
+                    backdropPath={item.backdropPath}
+                    subtitle={item.subtitle}
+                    onPress={() => openMedia(item.tmdbId, item.mediaType)}
+                  />
+                ))}
+              </Collapsible>
+            </Animated.View>
+          ) : null}
+
+          {backlog.length === 0 && grouped.length === 0 && undated.length === 0 ? (
             <Text style={[styles.quiet, { color: colors.textMeta }]}>
               Rien à rattraper ni à l’horizon pour l’instant.
             </Text>

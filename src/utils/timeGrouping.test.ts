@@ -2,6 +2,7 @@ import {
   airDateLabel,
   bucketRank,
   daysFromToday,
+  isOverdue,
   proximityBucket,
   releaseSubtitle,
   RECENT,
@@ -45,6 +46,17 @@ describe('timeGrouping', () => {
     expect(proximityBucket(iso(-14))).toBe(RECENT);
     // Past the window: no longer a timeline bucket, it belongs to the backlog.
     expect(proximityBucket(iso(-15))).toBe('Plus ancien');
+  });
+
+  it('isOverdue only counts dated releases past the window', () => {
+    expect(isOverdue(iso(-15))).toBe(true);
+    expect(isOverdue(iso(-14))).toBe(false);
+    expect(isOverdue(iso(0))).toBe(false);
+    expect(isOverdue(iso(30))).toBe(false);
+    // Unannounced: not late, just undated.
+    expect(isOverdue(null)).toBe(false);
+    expect(isOverdue(undefined)).toBe(false);
+    expect(isOverdue('')).toBe(false);
   });
 
   it('bucketRank orders buckets chronologically', () => {
