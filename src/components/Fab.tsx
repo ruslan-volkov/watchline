@@ -10,8 +10,10 @@ interface Props {
   accessibilityLabel: string;
 }
 
-/** Floating action button, bottom-right — thumb-reachable, sits above the tab bar. */
-export function Fab({ icon = 'add', onPress, accessibilityLabel }: Props) {
+/** Floating action button, bottom-right — thumb-reachable, sits above the tab bar.
+ *  Defaults to the search glyph: it opens the search screen, where "+" is what
+ *  actually adds a title. Reusing "+" here would give one glyph two jobs. */
+export function Fab({ icon = 'search', onPress, accessibilityLabel }: Props) {
   const { colors } = useTheme();
   const clearance = useTabBarClearance();
   return (

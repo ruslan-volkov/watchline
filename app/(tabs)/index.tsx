@@ -578,7 +578,7 @@ export default function Timeline() {
         </Animated.ScrollView>
         </>
       )}
-      <Fab onPress={() => router.push('/search')} accessibilityLabel="Ajouter un titre" />
+      <Fab onPress={() => router.push('/search')} accessibilityLabel="Rechercher un titre" />
       <RatingSheet
         visible={!!ratingFor}
         title={ratingFor?.title ?? ''}

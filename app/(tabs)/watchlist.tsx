@@ -235,7 +235,7 @@ export default function Watchlist() {
           ) : null}
         </ScrollView>
       )}
-      <Fab onPress={() => router.push('/search')} accessibilityLabel="Ajouter un titre" />
+      <Fab onPress={() => router.push('/search')} accessibilityLabel="Rechercher un titre" />
     </Screen>
   );
 }
