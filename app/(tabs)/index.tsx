@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
   RefreshControl,
@@ -84,6 +84,32 @@ export default function Timeline() {
   const [undatedOpen, setUndatedOpen] = useState(false);
   const [upcomingView, setUpcomingView] = useState<'list' | 'calendar'>('list');
   const scrollRef = useRef<Animated.ScrollView>(null);
+  // Both views share one ScrollView, so switching kept the outgoing view's
+  // offset — which lands you at the foot of the shorter one. Remember where
+  // each view was and put it back.
+  const offsets = useRef<Record<'list' | 'calendar', number>>({ list: 0, calendar: 0 });
+  const currentOffset = useRef(0);
+  /** The calendar jumps to the current month the first time it opens; after
+   *  that, the saved position is the better answer. */
+  const calendarSeen = useRef(false);
+
+  const switchView = (next: 'list' | 'calendar') => {
+    if (next === upcomingView) return;
+    offsets.current[upcomingView] = currentOffset.current;
+    if (upcomingView === 'calendar') calendarSeen.current = true;
+    setUpcomingView(next);
+  };
+
+  useEffect(() => {
+    // Leave the calendar's own jump to the current month alone on first open.
+    if (upcomingView === 'calendar' && !calendarSeen.current) return;
+    // One frame late: the incoming content must lay out first, or the scroll is
+    // clamped to the outgoing view's height.
+    const frame = requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y: offsets.current[upcomingView], animated: false });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [upcomingView]);
 
   const snooze = (entryId: string) => {
     update.mutate({ entryId, patch: { snoozed: true } });
@@ -376,7 +402,7 @@ export default function Timeline() {
               return (
                 <Pressable
                   key={v}
-                  onPress={() => setUpcomingView(v)}
+                  onPress={() => switchView(v)}
                   style={[
                     styles.viewToggleItem,
                     { backgroundColor: active ? colors.accent : colors.surface },
@@ -402,6 +428,10 @@ export default function Timeline() {
             paddingBottom: tabBarClearance + BOTTOM_CONTROLS_CLEARANCE,
           }}
           showsVerticalScrollIndicator={false}
+          onScroll={(e) => {
+            currentOffset.current = e.nativeEvent.contentOffset.y;
+          }}
+          scrollEventThrottle={64}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -417,6 +447,7 @@ export default function Timeline() {
                 onOpen={openMedia}
                 screenPadding={spacing.screenPadding}
                 scrollRef={scrollRef}
+                autoJump={!calendarSeen.current}
               />
             ) : (
               <Text style={[styles.quiet, { color: colors.textMeta }]}>

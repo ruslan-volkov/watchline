@@ -37,6 +37,9 @@ interface Props {
   /** Called right before the programmatic jump, so the parent can ignore the
    *  resulting scroll event (e.g. keep a floating header visible). */
   onBeforeJump?: () => void;
+  /** Jump to the current month on open. Off when the parent is restoring a
+   *  previously saved scroll position instead. */
+  autoJump?: boolean;
 }
 
 /** Minimal scroll surface the calendar needs — works for RN and Animated ScrollView. */
@@ -50,7 +53,14 @@ const GAP = 10;
 
 /** Vertical "photo library" style timeline: releases grouped by month, with a
  *  pinch gesture to change grid density (1 = one row per title, up to 5). */
-export function UpcomingCalendar({ items, onOpen, screenPadding, scrollRef, onBeforeJump }: Props) {
+export function UpcomingCalendar({
+  items,
+  onOpen,
+  screenPadding,
+  scrollRef,
+  onBeforeJump,
+  autoJump = true,
+}: Props) {
   const { colors } = useTheme();
   const [columns, setColumns] = useState(3);
 
@@ -60,7 +70,13 @@ export function UpcomingCalendar({ items, onOpen, screenPadding, scrollRef, onBe
   const monthY = useRef<number | null>(null);
   const jumped = useRef(false);
   const tryJump = () => {
-    if (jumped.current || rootY.current == null || monthY.current == null || !scrollRef?.current) {
+    if (
+      !autoJump ||
+      jumped.current ||
+      rootY.current == null ||
+      monthY.current == null ||
+      !scrollRef?.current
+    ) {
       return;
     }
     onBeforeJump?.();
