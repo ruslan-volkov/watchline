@@ -10,6 +10,7 @@ import {
   useState,
 } from 'react';
 
+import { track } from '@/lib/analytics';
 import { queryPersister } from '@/lib/queryPersist';
 import { supabase } from '@/lib/supabase';
 import type { Tables, TablesUpdate } from '@/types/db';
@@ -111,6 +112,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
+    // Before the call: AnalyticsProvider forgets the person as soon as the
+    // session clears, and this event belongs to the account that left.
+    track('signed_out');
     await supabase.auth.signOut();
   }, []);
 

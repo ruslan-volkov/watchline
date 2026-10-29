@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { TextField } from '@/components/TextField';
 import { useTheme } from '@/contexts/ThemeContext';
+import { track } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
 
 export default function SignUp() {
@@ -34,6 +35,7 @@ export default function SignUp() {
       setError(err.message);
       return;
     }
+    track('signed_up', { method: 'email' });
     // If the project requires email confirmation, no session is returned yet.
     if (!data.session) setNeedsConfirm(true);
     // Otherwise the auth listener + guard route to onboarding.

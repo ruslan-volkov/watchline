@@ -8,6 +8,7 @@ import { Alert, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { AnalyticsProvider } from '@/contexts/AnalyticsContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { DensityProvider } from '@/contexts/DensityContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
@@ -122,7 +123,9 @@ export default function RootLayout() {
           <AuthProvider>
             <ThemeProvider>
               <DensityProvider>
-                <RootNavigator />
+                <AnalyticsProvider>
+                  <RootNavigator />
+                </AnalyticsProvider>
               </DensityProvider>
             </ThemeProvider>
           </AuthProvider>

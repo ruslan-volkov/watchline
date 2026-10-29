@@ -5,11 +5,13 @@ import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-nat
 import { Button } from '@/components/Button';
 import { Screen } from '@/components/Screen';
 import { SectionHeader } from '@/components/SectionHeader';
+import { useAnalyticsConsent } from '@/contexts/AnalyticsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDensity } from '@/contexts/DensityContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useFriends } from '@/features/friends/useFriends';
 import { useWatchEntries } from '@/features/watch/useWatchEntries';
+import { track } from '@/lib/analytics';
 import { useTabBarClearance } from '@/theme/layout';
 import type { Density } from '@/theme/tokens';
 import type { Enums } from '@/types/db';
@@ -57,11 +59,17 @@ export default function Profile() {
   const { colors, preference, setPreference } = useTheme();
   const { profile, session, updateProfile, signOut } = useAuth();
   const { density, setDensity } = useDensity();
+  const { enabled: analyticsEnabled, setEnabled: setAnalyticsEnabled } = useAnalyticsConsent();
   const router = useRouter();
   const { acceptedFriends, incoming } = useFriends();
   const { data: entries } = useWatchEntries();
   const pausedCount = (entries ?? []).filter((e) => e.snoozed).length;
   const tabBarClearance = useTabBarClearance();
+
+  const changeSetting = <T extends string>(setting: string, value: T, apply: (v: T) => void) => {
+    apply(value);
+    track('setting_changed', { setting, value });
+  };
 
   const themeOptions: { key: ThemePref; label: string }[] = [
     { key: 'system', label: 'Système' },
@@ -133,11 +141,19 @@ export default function Profile() {
         <SectionHeader>Affichage</SectionHeader>
         <Row>
           <Text style={[styles.label, { color: colors.textPrimary }]}>Thème</Text>
-          <Segmented options={themeOptions} value={preference} onChange={setPreference} />
+          <Segmented
+            options={themeOptions}
+            value={preference}
+            onChange={(v) => changeSetting('theme', v, setPreference)}
+          />
         </Row>
         <Row>
           <Text style={[styles.label, { color: colors.textPrimary }]}>Densité</Text>
-          <Segmented options={densityOptions} value={density} onChange={setDensity} />
+          <Segmented
+            options={densityOptions}
+            value={density}
+            onChange={(v) => changeSetting('density', v, setDensity)}
+          />
         </Row>
 
         <SectionHeader>Notifications</SectionHeader>
@@ -145,7 +161,9 @@ export default function Profile() {
           <Text style={[styles.label, { color: colors.textPrimary }]}>Digest quotidien</Text>
           <Switch
             value={profile?.digest_enabled ?? true}
-            onValueChange={(v) => void updateProfile({ digest_enabled: v })}
+            onValueChange={(v) =>
+              changeSetting('digest', String(v), () => void updateProfile({ digest_enabled: v }))
+            }
             trackColor={{ true: colors.accent }}
           />
         </Row>
@@ -158,7 +176,34 @@ export default function Profile() {
           </View>
           <Switch
             value={profile?.activity_visible ?? true}
-            onValueChange={(v) => void updateProfile({ activity_visible: v })}
+            onValueChange={(v) =>
+              changeSetting('activity_visible', String(v), () =>
+                void updateProfile({ activity_visible: v }),
+              )
+            }
+            trackColor={{ true: colors.accent }}
+          />
+        </Row>
+
+        <SectionHeader>Confidentialité</SectionHeader>
+        <Row>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.label, { color: colors.textPrimary }]}>
+              Partager les statistiques d’usage
+            </Text>
+            <Text style={[styles.hint, { color: colors.textMeta }]}>
+              Des événements d’usage pour améliorer l’app. Jamais ton e-mail, tes recherches ni tes
+              notes.
+            </Text>
+          </View>
+          <Switch
+            value={analyticsEnabled}
+            onValueChange={(v) => {
+              // Order matters when turning it on: consent first, or the event
+              // has nothing to go out through. Turning it off records nothing.
+              setAnalyticsEnabled(v);
+              if (v) track('setting_changed', { setting: 'analytics', value: 'on' });
+            }}
             trackColor={{ true: colors.accent }}
           />
         </Row>

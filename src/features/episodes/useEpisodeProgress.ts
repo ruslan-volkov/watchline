@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import type { SeasonInfo } from '@/media/types';
 import { updateEntry } from '@/features/watch/api';
 import { entriesKey } from '@/features/watch/useWatchEntries';
+import { track } from '@/lib/analytics';
 import { fetchProgress, markEpisodes, unmarkEpisodes } from './api';
 import { episodeKey, orderEpisodes, type EpisodeRef } from './cascade';
 
@@ -73,7 +74,16 @@ export function useEpisodeProgress(entryId: string | undefined, seasons: SeasonI
       await markEpisodes(id, episodes);
       await syncStatus(id, watchedCount + episodes.length);
     },
-    onSuccess: (_data, vars) => invalidate(vars.forEntryId ?? entryId),
+    onSuccess: (_data, vars) => {
+      // Several episodes at once means the row tapped cascaded over the ones
+      // before it; a single one was ticked by hand.
+      track('episode_marked', {
+        mode: vars.episodes.length > 1 ? 'cascade' : 'manual',
+        count: vars.episodes.length,
+        completed_entry: totalCount > 0 && watchedCount + vars.episodes.length >= totalCount,
+      });
+      invalidate(vars.forEntryId ?? entryId);
+    },
   });
 
   const unmark = useMutation({
@@ -83,7 +93,10 @@ export function useEpisodeProgress(entryId: string | undefined, seasons: SeasonI
       await unmarkEpisodes(id, episodes);
       await syncStatus(id, Math.max(0, watchedCount - episodes.length));
     },
-    onSuccess: (_data, vars) => invalidate(vars.forEntryId ?? entryId),
+    onSuccess: (_data, vars) => {
+      track('episode_unmarked', { count: vars.episodes.length });
+      invalidate(vars.forEntryId ?? entryId);
+    },
   });
 
   return {
