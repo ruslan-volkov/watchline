@@ -29,6 +29,7 @@ import { useEntryMutations } from '@/features/watch/useEntryMutations';
 import { useNowWatching } from '@/features/watch/useNowWatching';
 import { useWatchEntries } from '@/features/watch/useWatchEntries';
 import { usePullRefresh } from '@/hooks/usePullRefresh';
+import { track } from '@/lib/analytics';
 import { useTabBarClearance } from '@/theme/layout';
 import {
   bucketRank,
@@ -77,7 +78,7 @@ export default function Timeline() {
   const { data: entries, isLoading } = useWatchEntries();
   const { cards } = useNowWatching();
   const markNext = useMarkNext();
-  const { update } = useEntryMutations();
+  const { update } = useEntryMutations('home');
   const [ratingFor, setRatingFor] = useState<{ entryId: string; title: string } | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [backlogOpen, setBacklogOpen] = useState(false);
@@ -133,8 +134,10 @@ export default function Timeline() {
   const { refreshing, onRefresh } = usePullRefresh([['watch_entries'], ['progress_all'], ['media_details']]);
   const tabBarClearance = useTabBarClearance();
 
-  const openMedia = (tmdbId: number, type: MediaType) =>
+  const openMedia = (tmdbId: number, type: MediaType) => {
+    track('media_opened', { media_type: type, tmdb_id: tmdbId, source: 'home' });
     router.push({ pathname: '/media/[id]', params: { id: String(tmdbId), type } });
+  };
 
   const upcoming = useMemo<UpcomingItem[]>(() => {
     const items: UpcomingItem[] = [];

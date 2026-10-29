@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -24,6 +24,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useMediaSearch, useTrending } from '@/features/media/useMediaSearch';
 import { useEntryMutations } from '@/features/watch/useEntryMutations';
 import { useWatchEntries } from '@/features/watch/useWatchEntries';
+import { track } from '@/lib/analytics';
 import { tapHaptic } from '@/lib/haptics';
 import { statusLabels } from '@/theme/tokens';
 import type { MediaSummary, WatchStatus } from '@/media/types';
@@ -43,7 +44,7 @@ export default function Search() {
   const { colors } = useTheme();
   const { spacing } = useDensity();
   const router = useRouter();
-  const { add, update, remove } = useEntryMutations();
+  const { add, update, remove } = useEntryMutations('search');
 
   const { data: entries } = useWatchEntries();
   const trackedEntry = useMemo(() => {
@@ -58,6 +59,17 @@ export default function Search() {
   const { data: results, isLoading } = useMediaSearch(debounced);
   const { data: trending, isLoading: trendingLoading } = useTrending();
   const showTrending = debounced.trim().length === 0;
+
+  // One event per distinct query, once its results have landed. The text
+  // itself is never sent — only how long it was and how many titles came back,
+  // which is what tells us whether search is finding things.
+  const lastTracked = useRef<string | null>(null);
+  useEffect(() => {
+    const q = debounced.trim();
+    if (!q || isLoading || !results || lastTracked.current === q) return;
+    lastTracked.current = q;
+    track('search_performed', { query_length: q.length, result_count: results.length });
+  }, [debounced, isLoading, results]);
 
   const [selected, setSelected] = useState<MediaSummary | null>(null);
   const [ratingFor, setRatingFor] = useState<{ entryId: string; title: string } | null>(null);
@@ -88,6 +100,11 @@ export default function Search() {
   // Tapping a result row opens its detail sheet; adding is reserved for the "+".
   const openMedia = (item: MediaSummary) => {
     Keyboard.dismiss();
+    track('media_opened', {
+      media_type: item.mediaType,
+      tmdb_id: item.tmdbId,
+      source: showTrending ? 'trending' : 'search',
+    });
     router.push({ pathname: '/media/[id]', params: { id: String(item.tmdbId), type: item.mediaType } });
   };
 

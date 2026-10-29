@@ -9,6 +9,7 @@ import { ListRow } from '@/components/ListRow';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useEntryMutations } from '@/features/watch/useEntryMutations';
 import { useWatchEntries } from '@/features/watch/useWatchEntries';
+import { track } from '@/lib/analytics';
 import { statusLabels } from '@/theme/tokens';
 import type { MediaType } from '@/media/types';
 
@@ -16,12 +17,14 @@ export default function Paused() {
   const { colors } = useTheme();
   const router = useRouter();
   const { data: entries, isLoading } = useWatchEntries();
-  const { update } = useEntryMutations();
+  const { update } = useEntryMutations('paused');
 
   const paused = useMemo(() => (entries ?? []).filter((e) => e.snoozed), [entries]);
 
-  const openMedia = (tmdbId: number, type: MediaType) =>
+  const openMedia = (tmdbId: number, type: MediaType) => {
+    track('media_opened', { media_type: type, tmdb_id: tmdbId, source: 'paused' });
     router.push({ pathname: '/media/[id]', params: { id: String(tmdbId), type } });
+  };
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.bg }]} edges={['top']}>

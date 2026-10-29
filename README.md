@@ -7,6 +7,7 @@ Voir [PLAN.md](PLAN.md) pour la vision produit complète.
 - **Expo** (SDK 54, compatible avec l'Expo Go installé) + **expo-router** + TypeScript
 - **Supabase** (Postgres, Auth e-mail, RLS)
 - **TanStack Query** pour l'état serveur
+- **PostHog** pour l’analytics produit (`src/lib/analytics.ts`), no-op sans `EXPO_PUBLIC_POSTHOG_KEY`
 - Données média : **TMDB** (`src/media/tmdb.ts`) derrière l'interface `MediaProvider`. Bascule automatiquement sur le mock (`src/media/mock.ts`) si `EXPO_PUBLIC_TMDB_ACCESS_TOKEN` est absent.
 
 ## Périmètre implémenté (Phase 1 — cœur)
@@ -45,6 +46,34 @@ Recherche multi (films + séries), fiche film, fiche série avec saisons/épisod
   `TMDB_ACCESS_TOKEN`, le digest saute la détection d'épisodes mais fonctionne pour les films.
 - **La réception se teste sur un development build** (le push distant est inactif dans Expo Go).
   `digest_time` par utilisateur n'est pas encore honoré (envoi unique à 08:00 UTC) — amélioration future.
+
+### Analytics (Phase 2 — fait)
+Tout passe par `src/lib/analytics.ts` : les noms d'événements et leurs propriétés y sont
+typés, donc renommer un événement casse le build au lieu de couper un funnel en deux.
+`src/contexts/AnalyticsContext.tsx` branche la couche sur le cycle de vie de l'app —
+consentement, compte identifié, vues d'écran. Expo Router n'a pas d'intégration de screen
+tracking : on suit `usePathname()` depuis le layout racine, comme le recommande la doc Expo.
+
+- **Clé** : `EXPO_PUBLIC_POSTHOG_KEY` (+ `EXPO_PUBLIC_POSTHOG_HOST`, cloud EU par défaut).
+  Sans clé la couche est un **no-op** — et en dev elle logge les événements dans la console,
+  de quoi vérifier l'instrumentation sans projet PostHog.
+- **Opt-out** : interrupteur « Partager les statistiques d'usage » dans Profil →
+  Confidentialité, persisté en AsyncStorage. Rien n'est envoyé avant que le consentement
+  stocké ait été relu au démarrage, donc un utilisateur désinscrit ne fuite pas d'événement
+  de lancement.
+- **Builds dev** : les événements partent dans le même projet, marqués
+  `app_env=development` — filtre là-dessus dans PostHog plutôt que de les jeter, sinon
+  l'instrumentation n'est vérifiable nulle part.
+- **Jamais envoyé** : e-mail, texte des recherches, contenu des notes, titres en clair.
+  Un titre voyage en `tmdb_id`, une recherche en longueur + nombre de résultats.
+- **Événements** : `signed_up` / `signed_in` / `signed_out`, `onboarding_completed`,
+  `entry_added`, `entry_status_changed`, `entry_rated`, `entry_snooze_toggled`,
+  `entry_removed`, `episode_marked` (`next` / `manual` / `cascade`), `episode_unmarked`,
+  `media_opened`, `search_performed`, `friend_request_sent` / `_accepted`,
+  `push_registration`, `setting_changed` — plus `$screen` et le cycle de vie applicatif
+  capturés par le SDK. Les gestes sur une entrée portent une propriété `source`
+  (`home`, `search`, `media_detail`, `watchlist`…) : le même geste se compare selon
+  l'endroit d'où il est offert.
 
 ### Reste de la Phase 2 (prérequis externes)
 - **Auth Apple/Google** : nécessite un development build + config native OAuth.

@@ -21,6 +21,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { fetchProgressForEntries } from '@/features/episodes/api';
 import { useWatchEntries } from '@/features/watch/useWatchEntries';
 import { usePullRefresh } from '@/hooks/usePullRefresh';
+import { track } from '@/lib/analytics';
 import { useTabBarClearance } from '@/theme/layout';
 import type { EntryWithMedia } from '@/features/watch/api';
 import type { MediaType } from '@/media/types';
@@ -87,8 +88,10 @@ export default function Library() {
     return sorted;
   }, [entries, sort]);
 
-  const openMedia = (tmdbId: number, type: MediaType) =>
+  const openMedia = (tmdbId: number, type: MediaType) => {
+    track('media_opened', { media_type: type, tmdb_id: tmdbId, source: 'library' });
     router.push({ pathname: '/media/[id]', params: { id: String(tmdbId), type } });
+  };
 
   const cols = 3;
   const gap = 12;

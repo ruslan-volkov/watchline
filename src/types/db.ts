@@ -251,8 +251,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      are_friends: { Args: { a: string; b: string }; Returns: boolean }
-      has_friend_link: { Args: { a: string; b: string }; Returns: boolean }
       search_profiles: {
         Args: { q: string }
         Returns: {

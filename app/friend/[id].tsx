@@ -21,6 +21,7 @@ import { RatingStars } from '@/components/RatingStars';
 import { SectionHeader } from '@/components/SectionHeader';
 import { useTheme } from '@/contexts/ThemeContext';
 import { fetchEntries } from '@/features/watch/api';
+import { track } from '@/lib/analytics';
 import type { MediaType } from '@/media/types';
 
 export default function FriendProfile() {
@@ -48,8 +49,10 @@ export default function FriendProfile() {
     [entries],
   );
 
-  const openMedia = (tmdbId: number, type: MediaType) =>
+  const openMedia = (tmdbId: number, type: MediaType) => {
+    track('media_opened', { media_type: type, tmdb_id: tmdbId, source: 'friend' });
     router.push({ pathname: '/media/[id]', params: { id: String(tmdbId), type } });
+  };
 
   const cols = 3;
   const gap = 12;
