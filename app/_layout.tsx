@@ -11,7 +11,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { DensityProvider } from '@/contexts/DensityContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
-import { usePushRegistration } from '@/features/notifications/usePushRegistration';
+import { PushRegistrationProvider } from '@/features/notifications/PushRegistrationContext';
 import { QUERY_CACHE_MAX_AGE, queryPersister } from '@/lib/queryPersist';
 
 // Splash grounds, kept in sync with the expo-splash-screen plugin in app.json.
@@ -73,7 +73,6 @@ function RootNavigator() {
   const { initializing, session, profile } = useAuth();
   const { colors, scheme } = useTheme();
   useProtectedRoute();
-  usePushRegistration();
 
   const gating = initializing || (session && !profile);
 
@@ -122,7 +121,9 @@ export default function RootLayout() {
           <AuthProvider>
             <ThemeProvider>
               <DensityProvider>
-                <RootNavigator />
+                <PushRegistrationProvider>
+                  <RootNavigator />
+                </PushRegistrationProvider>
               </DensityProvider>
             </ThemeProvider>
           </AuthProvider>
