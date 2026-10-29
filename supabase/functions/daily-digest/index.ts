@@ -79,6 +79,14 @@ Deno.serve(async (req: Request) => {
       .filter((p) => hourInTz(now, p.timezone) === digestHour(p.digest_time))
       .map((p) => p.id),
   );
+  // Users who asked for the digest but have no device registered are skipped
+  // below without a trace. Count them so the gap shows up in the function logs
+  // instead of needing a query against the database.
+  const tokenOwners = new Set((tokens ?? []).map((t) => t.user_id));
+  const missingTokens = (profiles ?? []).filter(
+    (p) => p.digest_enabled && !tokenOwners.has(p.id),
+  ).length;
+
   const tokensByUser = new Map<string, string[]>();
   for (const t of tokens ?? []) {
     if (!digestUsers.has(t.user_id)) continue;
@@ -86,7 +94,7 @@ Deno.serve(async (req: Request) => {
     arr.push(t.token);
     tokensByUser.set(t.user_id, arr);
   }
-  if (tokensByUser.size === 0) return json({ sent: 0, reason: 'no eligible tokens' });
+  if (tokensByUser.size === 0) return json({ sent: 0, missingTokens, reason: 'no eligible tokens' });
 
   const userIds = [...tokensByUser.keys()];
   const { data: entries } = await supabase
@@ -129,7 +137,7 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  if (messages.length === 0) return json({ sent: 0 });
+  if (messages.length === 0) return json({ sent: 0, missingTokens });
 
   const push = await fetch('https://exp.host/--/api/v2/push/send', {
     method: 'POST',
@@ -137,5 +145,5 @@ Deno.serve(async (req: Request) => {
     body: JSON.stringify(messages),
   });
   const result = await push.json().catch(() => null);
-  return json({ sent: messages.length, result });
+  return json({ sent: messages.length, missingTokens, result });
 });
