@@ -125,6 +125,7 @@ export type Database = {
           created_at: string
           density_preference: Database["public"]["Enums"]["density_pref"]
           digest_enabled: boolean
+          friend_requests_enabled: boolean
           digest_time: string
           id: string
           theme_preference: Database["public"]["Enums"]["theme_pref"]
@@ -137,6 +138,7 @@ export type Database = {
           created_at?: string
           density_preference?: Database["public"]["Enums"]["density_pref"]
           digest_enabled?: boolean
+          friend_requests_enabled?: boolean
           digest_time?: string
           id: string
           theme_preference?: Database["public"]["Enums"]["theme_pref"]
@@ -149,6 +151,7 @@ export type Database = {
           created_at?: string
           density_preference?: Database["public"]["Enums"]["density_pref"]
           digest_enabled?: boolean
+          friend_requests_enabled?: boolean
           digest_time?: string
           id?: string
           theme_preference?: Database["public"]["Enums"]["theme_pref"]

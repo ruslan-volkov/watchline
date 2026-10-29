@@ -4,6 +4,28 @@ import type { Tables } from '@/types/db';
 export type PublicProfile = Pick<Tables<'profiles'>, 'id' | 'username' | 'avatar_url'>;
 export type FriendshipRow = Tables<'friendships'>;
 
+/**
+ * Ping a friend's devices about a friendship event. Best effort: the row is
+ * already written, so a failed notification must never read as a failed action.
+ */
+async function notify(fn: string, body: Record<string, string>): Promise<void> {
+  try {
+    await supabase.functions.invoke(fn, { body });
+  } catch (_e) {
+    // A missed notification is not worth failing the action over.
+  }
+}
+
+/** Tell the addressee that a request is waiting for them. */
+export function notifyFriendRequest(addresseeId: string): Promise<void> {
+  return notify('notify-friend-request', { addresseeId });
+}
+
+/** Tell the requester that their request was accepted. */
+export function notifyFriendAccepted(friendshipId: string): Promise<void> {
+  return notify('notify-friend-accepted', { friendshipId });
+}
+
 /** A friendship with both linked profiles resolved (requester = user_id side). */
 export interface FriendshipWithProfiles extends FriendshipRow {
   requester: PublicProfile | null;

@@ -169,6 +169,23 @@ export default function Profile() {
         </Row>
         <Row>
           <View style={{ flex: 1 }}>
+            <Text style={[styles.label, { color: colors.textPrimary }]}>Amis</Text>
+            <Text style={[styles.hint, { color: colors.textMeta }]}>
+              Être prévenu quand quelqu’un t’ajoute ou accepte ta demande.
+            </Text>
+          </View>
+          <Switch
+            value={profile?.friend_requests_enabled ?? true}
+            onValueChange={(v) =>
+              changeSetting('friend_requests', String(v), () =>
+                void updateProfile({ friend_requests_enabled: v }),
+              )
+            }
+            trackColor={{ true: colors.accent }}
+          />
+        </Row>
+        <Row>
+          <View style={{ flex: 1 }}>
             <Text style={[styles.label, { color: colors.textPrimary }]}>Activité visible</Text>
             <Text style={[styles.hint, { color: colors.textMeta }]}>
               Autorise tes amis à voir ce que tu regardes.
