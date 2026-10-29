@@ -24,6 +24,7 @@ import { useMarkNext } from '@/features/episodes/useMarkNext';
 import { useNowWatching, type NowWatchingCardData } from '@/features/watch/useNowWatching';
 import { useWatchEntries } from '@/features/watch/useWatchEntries';
 import { usePullRefresh } from '@/hooks/usePullRefresh';
+import { track } from '@/lib/analytics';
 import { useTabBarClearance } from '@/theme/layout';
 import { daysFromToday, releaseSubtitle } from '@/utils/timeGrouping';
 import type { EntryWithMedia } from '@/features/watch/api';
@@ -138,8 +139,10 @@ export default function Watchlist() {
   // "En cours" — series being watched (always TV; hidden under the Films filter).
   const watching = useMemo(() => (filter === 'movie' ? [] : cards), [cards, filter]);
 
-  const openMedia = (tmdbId: number, type: MediaType) =>
+  const openMedia = (tmdbId: number, type: MediaType) => {
+    track('media_opened', { media_type: type, tmdb_id: tmdbId, source: 'watchlist' });
     router.push({ pathname: '/media/[id]', params: { id: String(tmdbId), type } });
+  };
 
   return (
     <Screen padded={false}>

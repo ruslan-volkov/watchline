@@ -3,6 +3,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
+import { track } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
 
 // Foreground presentation: show a banner + play sound when a digest arrives.
@@ -37,6 +38,9 @@ export async function registerForPushNotifications(userId: string): Promise<void
     let granted = existing.granted;
     if (!granted) {
       granted = (await Notifications.requestPermissionsAsync()).granted;
+      // Only when the system prompt actually appeared — recording the already
+      // granted case on every launch would drown the accept rate in noise.
+      track('push_registration', { granted });
     }
     if (!granted) return;
 

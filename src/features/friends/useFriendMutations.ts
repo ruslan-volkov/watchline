@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { track } from '@/lib/analytics';
 import { acceptFriendRequest, removeFriendship, sendFriendRequest } from './api';
 import { friendshipsKey } from './useFriends';
 
@@ -17,12 +18,18 @@ export function useFriendMutations() {
 
   const send = useMutation({
     mutationFn: (friendId: string) => sendFriendRequest(me as string, friendId),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      track('friend_request_sent');
+    },
   });
 
   const accept = useMutation({
     mutationFn: (friendshipId: string) => acceptFriendRequest(friendshipId),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      track('friend_request_accepted');
+    },
   });
 
   const remove = useMutation({
