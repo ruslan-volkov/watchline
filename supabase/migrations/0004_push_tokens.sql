@@ -22,11 +22,13 @@ create policy "push_tokens_insert_own" on public.push_tokens
 create policy "push_tokens_delete_own" on public.push_tokens
   for delete using (user_id = auth.uid());
 
--- Daily digest schedule (08:00 UTC). Applied out-of-band because it embeds the
--- CRON_SECRET; replace <CRON_SECRET> when re-applying to a fresh project:
+-- Digest schedule. Applied out-of-band because it embeds the CRON_SECRET; replace
+-- <CRON_SECRET> when re-applying to a fresh project. Hourly, not daily: the function
+-- compares each user's local hour to their digest_time, so a once-a-day trigger would
+-- only ever reach the users whose chosen hour happened to match it.
 --
 -- select cron.schedule(
---   'watchline-daily-digest', '0 8 * * *',
+--   'watchline-daily-digest', '0 * * * *',
 --   $$ select net.http_post(
 --        url := 'https://<project-ref>.supabase.co/functions/v1/daily-digest',
 --        headers := jsonb_build_object('Content-Type','application/json','x-cron-secret','<CRON_SECRET>'),

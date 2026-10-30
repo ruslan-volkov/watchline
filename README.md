@@ -39,13 +39,14 @@ Recherche multi (films + séries), fiche film, fiche série avec saisons/épisod
 - Edge Function `daily-digest` (`supabase/functions/daily-digest/`) : calcule les sorties
   du jour par utilisateur (films de la watchlist sortant aujourd'hui + épisodes du jour via
   TMDB `next/last_episode_to_air`) et envoie un push Expo groupé. Protégée par `x-cron-secret`.
-- Planifiée par `pg_cron` tous les jours à 08:00 UTC.
+- Planifiée par `pg_cron` toutes les heures (`0 * * * *`) : la fonction compare l'heure
+  locale de chaque utilisateur à son `digest_time`, donc un seul tir quotidien ne
+  toucherait que ceux dont l'heure choisie coïncide.
 - **Secrets** de la fonction (`TMDB_ACCESS_TOKEN`, `CRON_SECRET`) : dans `supabase/functions/.env`
   (local, non commité — voir `.env.example`). Les pousser vers la fonction déployée avec :
   `supabase secrets set --env-file supabase/functions/.env --project-ref <ref>`. Sans
   `TMDB_ACCESS_TOKEN`, le digest saute la détection d'épisodes mais fonctionne pour les films.
 - **La réception se teste sur un development build** (le push distant est inactif dans Expo Go).
-  `digest_time` par utilisateur n'est pas encore honoré (envoi unique à 08:00 UTC) — amélioration future.
 
 ### Analytics (Phase 2 — fait)
 Tout passe par `src/lib/analytics.ts` : les noms d'événements et leurs propriétés y sont

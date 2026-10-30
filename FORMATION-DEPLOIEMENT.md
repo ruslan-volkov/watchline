@@ -134,8 +134,45 @@ citation du secret retirée de ce fichier, et la note de génération dans
 `supabase/functions/.env.example`. Les deux autres fonctions (`notify-friend-*`)
 gardent `verify_jwt`, dérivent l'identité du JWT de l'appelant et n'ont pas ce défaut.
 
-Reste à faire, en production : pousser le nouveau secret, replanifier le job cron avec,
-vérifier que l'ancien est refusé, et chronométrer la fenêtre entre les deux.
+**Rotation tentée en production le 2026-10-30, annulée volontairement.** Déroulé :
+
+| t (UTC) | Événement |
+| --- | --- |
+| 19:02 | relevé de l'état réel du projet cloud |
+| 19:05:41 | `supabase secrets set CRON_SECRET` → nouveau secret sur la fonction |
+| 19:05–19:07 | **fenêtre ouverte** : la fonction attend le nouveau, le cron envoie l'ancien |
+| 19:07:30 | retour arrière, ancien secret remis |
+| 19:08 | sonde : HTTP 200, service rétabli |
+
+**Fenêtre : 109 s.** Le cron (prochain tir 20:00) n'a jamais été déclenché dedans :
+zéro digest manqué. Mais ce chiffre ne mesure pas la plateforme — il mesure mon temps
+de réaction entre deux commandes. La propagation réelle de `secrets set` vers le worker
+n'a pas pu être chronométrée, la sonde répétée vers la production ayant été refusée.
+
+5. **Le secret de production *était* le littéral du dépôt.** Les deux sha256 coïncident.
+   Ce n'était donc pas une hypothèse : la valeur présente dans `40bd381` est celle qui
+   gardait la fonction. (Au passage, `supabase secrets list` publie le sha256 de chaque
+   valeur — de quoi confirmer un secret deviné, sans le révéler.)
+6. **La production tourne `0 * * * *`, toutes les heures.** Le commentaire de `0004` et
+   le README annonçaient `0 8 * * *`, une fois par jour. C'est le dépôt qui dérive de la
+   production, pas l'inverse : le « Runs hourly » du code et le `digest_time` par
+   utilisateur sont donc corrects en prod. Ça **annule la conclusion n° 5 du palier 0**.
+   Pire, le commentaire de `0004` est une recette : la réappliquer sur un projet neuf
+   aurait créé une planification différente de la production, en silence. Corrigé.
+7. **La duplication n'est pas qu'une fenêtre, c'est un mur d'automatisation.** Les deux
+   côtés ne se manipulent pas de la même façon : la variable d'env de la fonction se met
+   à jour *depuis un fichier*, sans que personne ne lise la valeur ; le SQL du job cron,
+   lui, exige d'écrire le secret en clair dans la commande. C'est ce qui a arrêté la
+   rotation — pas un obstacle technique, une conséquence du choix de conception. Tant que
+   le secret est porté en dur par le cron, la rotation ne peut pas être automatisée du
+   tout, et ne peut être faite que par quelqu'un qui a le droit de voir la valeur.
+
+**Le vrai correctif** n'est donc pas « rotationner plus vite ». C'est que le cron lise le
+secret au moment de l'appel — `vault.decrypted_secrets` dans le `jsonb_build_object` —
+pour que sa commande n'en contienne aucun. Une rotation redevient alors une écriture dans
+un seul système, sans fenêtre et automatisable. À faire au palier 2, dont c'est le sujet.
+
+Reste à faire : la rotation elle-même, une fois le cron découplé du secret.
 
 **Concept** — *Fail closed, fail fast* et rotation de secrets. Une config absente doit
 provoquer une panne bruyante au démarrage, jamais une dégradation silencieuse de la
