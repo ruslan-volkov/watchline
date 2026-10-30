@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { TextField } from '@/components/TextField';
 import { useTheme } from '@/contexts/ThemeContext';
+import { track } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
 
 export default function SignIn() {
@@ -26,6 +27,7 @@ export default function SignIn() {
     setError(null);
     const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     if (err) setError(err.message);
+    else track('signed_in', { method: 'email' });
     setLoading(false);
     // On success the auth listener + guard route onward.
   };

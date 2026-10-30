@@ -13,6 +13,7 @@ import { Button } from '@/components/Button';
 import { TextField } from '@/components/TextField';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { track } from '@/lib/analytics';
 
 export default function Onboarding() {
   const { colors } = useTheme();
@@ -30,6 +31,7 @@ export default function Onboarding() {
       // Persist only at the end so the session guard doesn't bounce us off
       // the confirmation step early.
       await updateProfile({ username: username.trim() });
+      track('onboarding_completed');
       router.replace('/(tabs)');
       router.push('/search');
     } finally {
@@ -59,6 +61,7 @@ export default function Onboarding() {
               <View style={styles.form}>
                 <TextField
                   label="Pseudo"
+                  testID="onboarding-username"
                   value={username}
                   onChangeText={setUsername}
                   autoCapitalize="none"

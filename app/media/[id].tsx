@@ -42,7 +42,7 @@ export default function MediaDetail() {
   const tmdbId = Number(params.id);
   const mediaType = (params.type as MediaType) ?? 'movie';
 
-  const { add, update, remove } = useEntryMutations();
+  const { add, update, remove } = useEntryMutations('media_detail');
   const { data: entries } = useWatchEntries();
   const entry = useMemo(
     () => entries?.find((e) => e.media.tmdb_id === tmdbId && e.media.media_type === mediaType),

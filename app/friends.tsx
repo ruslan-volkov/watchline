@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/Avatar';
 import { SectionHeader } from '@/components/SectionHeader';
 import { useTheme } from '@/contexts/ThemeContext';
+import { activityLine } from '@/features/friends/activityCopy';
 import { useFriendMutations } from '@/features/friends/useFriendMutations';
 import { useFriends } from '@/features/friends/useFriends';
 import { useUserSearch } from '@/features/friends/useUserSearch';
@@ -24,7 +25,7 @@ import { usePullRefresh } from '@/hooks/usePullRefresh';
 export default function Friends() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { me, acceptedFriends, incoming, outgoing, other, activityByUser } = useFriends();
+  const { acceptedFriends, incoming, outgoing, links, activityByUser } = useFriends();
   const { send, accept, remove } = useFriendMutations();
   const { refreshing, onRefresh } = usePullRefresh([['friendships'], ['friend_activity']]);
 
@@ -34,15 +35,6 @@ export default function Friends() {
   const [query, setQuery] = useState('');
   const { data: results, isFetching } = useUserSearch(query);
   const searching = query.trim().length >= 2;
-
-  // Relationship state per user id, to pick the right action in search results.
-  const relation = useMemo(() => {
-    const map = new Map<string, 'friend' | 'outgoing' | 'incoming'>();
-    for (const a of acceptedFriends) if (a.profile) map.set(a.profile.id, 'friend');
-    for (const f of outgoing) if (f.addressee) map.set(f.addressee.id, 'outgoing');
-    for (const f of incoming) if (f.requester) map.set(f.requester.id, 'incoming');
-    return map;
-  }, [acceptedFriends, outgoing, incoming]);
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.bg }]} edges={['top']}>
@@ -90,7 +82,7 @@ export default function Friends() {
               </Text>
             ) : (
               (results ?? []).map((u) => {
-                const rel = relation.get(u.id);
+                const rel = links.get(u.id)?.relation;
                 return (
                   <View key={u.id} style={styles.row}>
                     <Pressable
@@ -182,7 +174,7 @@ export default function Friends() {
                           {profile?.username ?? 'Utilisateur'}
                         </Text>
                         <Text style={[styles.activity, { color: colors.textSecondary }]} numberOfLines={1}>
-                          {activity ? `Regarde ${activity.title}` : 'Activité masquée'}
+                          {activityLine(activity?.title ?? null, profile)}
                         </Text>
                       </View>
                     </Pressable>
