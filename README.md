@@ -70,7 +70,9 @@ Depuis la fiche d'un film ou d'une série, Watchline demande à **Radarr** (film
   créé à la première ouverture de l'écran, remplaçable par un bouton si elle fuit), pas d'en-tête ni de secret à régler. Optionnelle :
   sans elle, l'app suit quand même l'état tant qu'elle est ouverte.
   ```bash
-  supabase db push --project-ref <ref>
+  # Pas de `supabase db push` : l'historique des migrations de la prod (horodatages) ne
+  # correspond pas aux fichiers 000N. Appliquer 0013_nas_webhook_tokens.sql à la main
+  # (éditeur SQL du tableau de bord) puis déployer la fonction :
   supabase functions deploy nas-download-complete --no-verify-jwt --project-ref <ref>
   ```
 - **Essayer sans NAS** : `node scripts/fake-arr.mjs` simule Radarr (:7878) et Sonarr (:8989),
