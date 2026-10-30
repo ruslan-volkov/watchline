@@ -25,3 +25,20 @@ jobs:
 
       - name: Unit tests
         run: npx jest --ci
+
+  database:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.109.1
+
+      # Applies every migration to a fresh Postgres, so a migration that only works
+      # on top of the hosted project's history fails here.
+      - name: Start local Supabase
+        run: supabase start -x studio,imgproxy,vector,logflare,mailpit,edge-runtime
+
+      - name: Database tests
+        run: supabase test db

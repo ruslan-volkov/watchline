@@ -222,10 +222,14 @@ export default function Search() {
         <Pressable
           style={[styles.backdrop, { backgroundColor: colors.overlay }]}
           onPress={() => (busy ? null : setSelected(null))}
+          accessible={false}
         >
           <Pressable
             style={[styles.sheet, { backgroundColor: colors.surface }]}
             onPress={(e) => e.stopPropagation()}
+            // Only there to swallow taps; as an accessible parent it would hide the
+            // status buttons from VoiceOver (and from UI tests).
+            accessible={false}
           >
             <View style={[styles.handle, { backgroundColor: colors.border }]} />
             <Text style={[styles.sheetTitle, { color: colors.textPrimary }]} numberOfLines={1}>
