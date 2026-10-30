@@ -58,4 +58,4 @@ xcodebuild -workspace ios/WatchlineDev.xcworkspace -scheme WatchlineDev \
   -derivedDataPath ios/build build -quiet
 xcrun simctl install booted ios/build/Build/Products/Release-iphonesimulator/WatchlineDev.app
 
-maestro test .maestro
+maestro test -e API_URL="$API_URL" -e ANON_KEY="$ANON_KEY" .maestro
