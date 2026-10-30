@@ -121,9 +121,11 @@ erreur sur une base vide. Ce qu'il faut savoir :
 - **Planification** — `0013_digest_schedule.sql` déclare le job `pg_cron`, qui lit son
   secret et son URL de base dans Vault au moment de l'appel. Ces deux valeurs sont de
   la configuration, pas du schéma : `supabase/seed.sql` les pose pour le local (et y
-  désactive le job, un stack de dev n'ayant pas à notifier qui que ce soit). Sur un
-  projet déployé, il faut les y mettre une fois — sinon le job échoue au tir et la
-  raison apparaît dans `cron.job_run_details`.
+  désactive le job — le digest poste vers `exp.host`, donc un stack de dev avec de vrais
+  jetons atteindrait de vrais appareils). Pour l'exercer quand même :
+  `select cron.alter_job((select jobid from cron.job where jobname = 'watchline-daily-digest'), active := true);`
+  Sur un projet déployé, il faut poser les deux valeurs une fois — sinon le job échoue au
+  tir et la raison apparaît dans `cron.job_run_details`.
 - **Fonction** — `supabase functions serve --env-file supabase/functions/.env`.
   Les secrets sont lus dans ce fichier (non commité) ; le conteneur ne les recharge
   qu'au (re)démarrage de `serve`.
