@@ -68,7 +68,7 @@ le reste : sans ça, tu ne peux ni tester un pipeline ni répéter un rollback.
 **État actuel** — `supabase/functions/daily-digest/index.ts:5` :
 
 ```ts
-const CRON_SECRET = Deno.env.get('CRON_SECRET') ?? 'wl_cron_7f3a9c21b8e64d05';
+const CRON_SECRET = Deno.env.get('CRON_SECRET') ?? 'wl_cron_<redacted>';
 ```
 
 Un fallback codé en dur, dans un fichier versionné, pour le seul mécanisme qui protège
@@ -88,6 +88,54 @@ l'accès.
 
 **Réussi quand** — La fonction refuse de démarrer sans configuration, et tu sais faire
 tourner un secret en production en connaissant le temps de coupure.
+
+**🟡 Moitié faite le 2026-10-30.** La partie locale est bouclée ; la rotation en
+production attend ton accord (elle touche le projet cloud).
+
+Le portail, avant et après, mesuré sur la stack locale :
+
+| Requête | Avant | Après |
+| --- | --- | --- |
+| sans en-tête | 401 | 500 |
+| mauvais secret | 401 | 500 |
+| bon secret | 200 | 500 |
+| secret du dépôt | **200** | 500 |
+
+La colonne « après » est prise avec `CRON_SECRET` retiré de l'environnement : plus
+aucune requête ne passe, et le log dit pourquoi en une ligne. C'est la ligne
+`secret du dépôt → 200` qui était le vrai défaut.
+
+1. **« Fail fast » ne veut pas dire « le déploiement échoue ».** Le `throw` est au
+   chargement du module, mais l'edge runtime instancie le worker *à la première
+   requête* : le déploiement réussit, et on ne découvre la panne qu'au déclenchement
+   du cron. Fail-closed, oui ; fail-early, non. Une configuration manquante reste donc
+   invisible jusqu'à 08:00 UTC — c'est l'argument d'un *dead man's switch* au palier 7.
+2. **Un secret dans l'historique se propage.** Le scan n'a pas trouvé que le commit
+   d'origine (`40bd381`) : mon propre commit de palier 0 l'avait recopié dans ce
+   fichier en citant la ligne fautive. Deux emplacements pour une seule fuite. Le
+   dépôt étant privé, c'est une urgence modérée, pas une alerte.
+3. **Comparaison en temps constant : non, et avec des chiffres.** La fuite temporelle
+   d'un `!==` sur chaîne courte est de l'ordre de la nanoseconde ; la gigue réseau est
+   de l'ordre de la milliseconde, soit six ordres de grandeur au-dessus. Il faudrait
+   ~10¹² requêtes par position d'octet pour la faire émerger du bruit, sur un point
+   d'entrée limité en débit et avec un secret de 256 bits. Ce n'est pas le maillon
+   faible : le maillon faible, c'est que le secret a traîné dans un fichier versionné
+   et voyage en clair dans un en-tête. On le fait tourner, on n'ajoute pas de
+   cérémonie cryptographique.
+4. **La fenêtre d'indisponibilité vient d'une duplication, pas d'une lenteur.** Le
+   secret existe dans deux systèmes : la variable d'env de la fonction et le corps SQL
+   du job `pg_cron` (d'où le « applied out-of-band » de `0004`). Les deux ne peuvent
+   pas changer au même instant, donc toute rotation a une fenêtre. La supprimer n'est
+   pas un problème de rapidité : il faut que le cron lise le secret au moment de
+   l'appel (Supabase Vault) au lieu de le porter en dur — à traiter au palier 2.
+
+Livré : le `throw` au chargement dans `supabase/functions/daily-digest/index.ts`, la
+citation du secret retirée de ce fichier, et la note de génération dans
+`supabase/functions/.env.example`. Les deux autres fonctions (`notify-friend-*`)
+gardent `verify_jwt`, dérivent l'identité du JWT de l'appelant et n'ont pas ce défaut.
+
+Reste à faire, en production : pousser le nouveau secret, replanifier le job cron avec,
+vérifier que l'ancien est refusé, et chronométrer la fenêtre entre les deux.
 
 **Concept** — *Fail closed, fail fast* et rotation de secrets. Une config absente doit
 provoquer une panne bruyante au démarrage, jamais une dégradation silencieuse de la
