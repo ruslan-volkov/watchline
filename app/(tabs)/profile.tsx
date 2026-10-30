@@ -10,6 +10,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDensity } from '@/contexts/DensityContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useFriends } from '@/features/friends/useFriends';
+import { SERVICES, serviceLabels } from '@/features/nas/config';
+import { useNasConfig } from '@/features/nas/NasConfigContext';
 import { usePushStatus } from '@/features/notifications/PushRegistrationContext';
 import type { PushRegistrationResult } from '@/features/notifications/attempt';
 import { useWatchEntries } from '@/features/watch/useWatchEntries';
@@ -99,6 +101,8 @@ export default function Profile() {
   const { data: entries } = useWatchEntries();
   const pushStatus = usePushStatus();
   const pausedCount = (entries ?? []).filter((e) => e.snoozed).length;
+  const { config: nasConfig } = useNasConfig();
+  const configuredServices = SERVICES.filter((s) => nasConfig[s]);
   const notice = digestNotice(pushStatus);
   const tabBarClearance = useTabBarClearance();
 
@@ -169,6 +173,24 @@ export default function Profile() {
             </Text>
             <Text style={[styles.soonText, { color: colors.textSecondary }]}>
               Les titres que tu as mis de côté.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textMeta} />
+        </Pressable>
+
+        <SectionHeader>NAS</SectionHeader>
+        <Pressable
+          onPress={() => router.push('/nas')}
+          style={[styles.soon, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          accessibilityRole="button"
+        >
+          <Ionicons name="server-outline" size={22} color={colors.textSecondary} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.soonTitle, { color: colors.textPrimary }]}>Téléchargements</Text>
+            <Text style={[styles.soonText, { color: colors.textSecondary }]}>
+              {configuredServices.length > 0
+                ? `Configuré : ${configuredServices.map((s) => serviceLabels[s]).join(', ')}`
+                : 'Branche Radarr et Sonarr pour télécharger depuis l’app.'}
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.textMeta} />

@@ -1,0 +1,35 @@
+appId: com.rvolkov.watchline.dev
+# Fresh account through the UI, ending on the search screen onboarding opens.
+# Expects USERNAME; leaves the new account's e-mail in ${output.email}.
+---
+- evalScript: ${output.email = 'maestro+' + Date.now() + '@test.local'}
+- launchApp:
+    clearState: true
+    clearKeychain: true
+
+# Sign-in is the signed-out landing screen; the sign-up form hangs off it.
+- tapOn: Créer un compte
+- tapOn:
+    id: sign-up-email
+- inputText: ${output.email}
+- tapOn:
+    id: sign-up-password
+- inputText: test-password-123
+- tapOn: Continuer
+
+# iOS offers to save the new password and covers the app until it is answered.
+- tapOn:
+    text: Not Now|Pas maintenant
+    optional: true
+
+# Local Supabase has e-mail confirmation off, so signing up lands straight on onboarding.
+- assertVisible: Comment veux-tu qu’on t’appelle ?
+- tapOn:
+    id: onboarding-username
+- inputText: ${USERNAME}
+- tapOn: Continuer
+- assertVisible: Bienvenue, ${USERNAME}.*
+- tapOn: Ajouter un titre
+
+# Onboarding opens the search screen on top of the tabs.
+- assertVisible: Tendances cette semaine

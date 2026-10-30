@@ -18,7 +18,7 @@
 -- only withholds a grant -- it does not take one away, so on a cloud project anon
 -- keeps the permissive defaults described above. Harmless today (RLS yields it no
 -- rows, and TRUNCATE, the one privilege RLS ignores, is not reachable through
--- PostgREST), but the gap was real, and 0014 closes it for anon.
+-- PostgREST), but the gap was real, and 0016 closes it for anon.
 
 grant select, insert, update         on public.profiles         to authenticated;
 grant select, insert, update, delete on public.friendships      to authenticated;

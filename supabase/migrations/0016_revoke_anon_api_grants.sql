@@ -2,7 +2,8 @@
 -- and names `anon` nowhere. That withholds a grant; it does not take one away. And the
 -- two places this schema runs disagree about what anon starts with: the CLI's local
 -- image leaves it Dxtm, while the cloud platform grants arwdDxtm through ALTER DEFAULT
--- PRIVILEGES. So on a deployed project anon kept full DML on all six tables, and 0010's
+-- PRIVILEGES. So on a deployed project anon kept full DML on every one of these tables,
+-- and 0010's
 -- claim that it gets nothing has never been true there.
 --
 -- Nothing was reachable through it: every policy keys on auth.uid(), which is null for
@@ -22,8 +23,11 @@
 --     under RLS, but restating the whole privilege set is a larger change than the
 --     finding that prompted this one.
 --   * ALTER DEFAULT PRIVILEGES is left alone, because it governs objects no migration
---     here owns. A new table therefore still has to revoke explicitly -- which is what
---     the table list in rls.test.sql exists to catch.
+--     here owns. A new table therefore has to be revoked explicitly, here and in
+--     rls.test.sql. An explicit list cannot catch its own omissions, and merging master
+--     proved the point: 0013 arrived with nas_webhook_tokens, which granted
+--     authenticated and service_role but said nothing about anon, so the table had to be
+--     added below by hand. The list is where a new table is declared, not a safety net.
 
 revoke all on public.profiles         from anon;
 revoke all on public.friendships      from anon;
@@ -31,3 +35,4 @@ revoke all on public.media            from anon;
 revoke all on public.watch_entries    from anon;
 revoke all on public.episode_progress from anon;
 revoke all on public.push_tokens      from anon;
+revoke all on public.nas_webhook_tokens from anon;

@@ -1,0 +1,36 @@
+appId: com.rvolkov.watchline.dev
+name: Send a friend request, see the friend's activity, then see it hidden
+# Needs `-e API_URL=... -e ANON_KEY=...` (scripts/e2e-ios.sh passes them): the friend is a
+# second user created and driven through the API, see scripts/*.js.
+---
+- runScript: scripts/seed-friend.js
+- runFlow:
+    file: subflows/sign-up.yaml
+    env:
+      USERNAME: maestro
+
+# Leave the search screen onboarding opened, then go to Profile → Friends.
+- tapOn: Annuler
+- tapOn: Profil, tab.*
+- tapOn: .*Ajouter des amis.*
+
+# Find the friend by username and send the request.
+- tapOn: Ajouter par pseudo
+- inputText: ${output.friendName}
+- assertVisible: ${output.friendName}
+- tapOn: Ajouter
+- assertVisible: Envoyée
+
+# Until they accept, their activity stays out of reach.
+- runScript: scripts/accept-request.js
+
+# A relaunch keeps the session; pulling the list refetches friendships and activity.
+- runFlow: subflows/open-friends.yaml
+- assertVisible: .*${output.friendName}.*Regarde ${output.friendTitle}.*
+- takeScreenshot: friend-activity-visible
+
+# Hiding activity must read as hidden, not as "nothing in progress".
+- runScript: scripts/hide-activity.js
+- runFlow: subflows/open-friends.yaml
+- assertVisible: .*${output.friendName}.*Activité masquée.*
+- takeScreenshot: friend-activity-hidden

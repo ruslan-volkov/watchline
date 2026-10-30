@@ -15,6 +15,7 @@ interface Props {
   loading?: boolean;
   disabled?: boolean;
   style?: ViewStyle;
+  testID?: string;
 }
 
 export function Button({
@@ -24,6 +25,7 @@ export function Button({
   loading = false,
   disabled = false,
   style,
+  testID,
 }: Props) {
   const { colors } = useTheme();
   const isPrimary = variant === 'primary';
@@ -34,6 +36,7 @@ export function Button({
   return (
     <Pressable
       onPress={onPress}
+      testID={testID}
       disabled={inactive}
       style={({ pressed }) => [
         styles.button,

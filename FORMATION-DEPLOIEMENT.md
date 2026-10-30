@@ -210,7 +210,7 @@ la seule exécution de ce qui est versionné. Aucune étape manuelle au tableau 
 
 **🟡 Fait en local le 2026-10-30, pas appliqué en production.**
 
-Livré : `supabase/migrations/0013_digest_schedule.sql` déclare le job, qui lit son
+Livré : `supabase/migrations/0015_digest_schedule.sql` déclare le job, qui lit son
 secret *et* son URL de base dans Vault au moment de l'appel — sa commande ne contient
 donc ni l'un ni l'autre et devient committable. `supabase/seed.sql` (jamais appliqué à
 un projet déployé) pose les deux valeurs pour le local et y désactive le job.
@@ -230,7 +230,7 @@ Vérifié par rejeu à froid, 14 migrations sur base vide :
    ailleurs : **dans le seed**. Une migration qui génère un secret « s'il est absent »
    casse en silence un projet existant, où il *est* absent de Vault — le job se mettrait
    à envoyer une valeur que la fonction déployée ignore. D'où un choix explicite :
-   `0013` ne seed rien du tout.
+   `0015` ne seed rien du tout.
 2. **`supabase db reset` sort en code 0 alors que le seed a échoué.** Mon premier seed
    faisait un `update cron.job`, refusé (`42501`, la table n'est pas modifiable par ce
    rôle — il faut `cron.alter_job`). Le message apparaît dans la sortie, mais le code de
@@ -324,14 +324,14 @@ Deux réserves honnêtes :
 ### Ce que la création de staging a révélé
 
 `watchline-staging` (`lmagsjyusqjxpngpqqcn`, eu-west-3, 0 $/mois) porte les 13 migrations,
-le job `pg_cron` de `0013`, ses deux valeurs Vault et les trois Edge Functions. Cinq choses
+le job `pg_cron` de `0015`, ses deux valeurs Vault et les trois Edge Functions. Cinq choses
 sont apparues, dont deux qui invalident ce que ce dépôt affirmait.
 
 **1. `supabase db push` ne peut pas être le chemin de déploiement de ce projet.**
 L'historique de la prod porte des versions horodatées et des noms qui ne sont pas ceux des
 fichiers (`initial_schema`, `push_tokens_and_cron`, mais aussi `0008_profiles_timezone`) :
 tout a été appliqué par le tableau de bord ou l'API, jamais par `db push`. La CLI
-comparerait les versions du dossier (`0001`…`0013`) à celles de la base, n'en trouverait
+comparerait les versions du dossier (`0001`…`0016`) à celles de la base, n'en trouverait
 aucune, et rejouerait tout — `create type media_type` échouerait immédiatement. La
 procédure ci-dessous est corrigée en conséquence. Remettre `db push` en service demanderait
 un `supabase migration repair` sur chacun des deux projets : c'est une décision du palier 4,
@@ -358,7 +358,7 @@ affirme « `anon` gets nothing, on purpose ». Les lignes restent protégées (t
 policies passent par `auth.uid()`, nul pour `anon` ; `media` est même `to authenticated`),
 et `TRUNCATE` — le seul privilège qui ignore RLS — n'est pas exposé par PostgREST. Donc pas
 de porte ouverte, mais un écart entre ce que le fichier décrit et ce qui est en place. Le
-corriger demande un `0014` qui révoque explicitement, et non une retouche de `0010` qui est
+corriger demande un `0016` qui révoque explicitement, et non une retouche de `0010` qui est
 déjà appliqué : c'est précisément le genre de changement qu'on veut voir passer par staging
 d'abord.
 
@@ -462,19 +462,19 @@ en lecture seule et révocable depuis le compte TMDB.
 1. **Réveiller staging** depuis le tableau de bord (projet free, probablement en pause).
 2. Appliquer les migrations manquantes **par l'API de management ou le tableau de bord**,
    dans l'ordre des fichiers. Pas `supabase db push` : voir le point 1 ci-dessus.
-3. **Vérifier sur staging, pas en local** : `cron.job` correspond à `0013`, les droits de
+3. **Vérifier sur staging, pas en local** : `cron.job` correspond à `0015`, les droits de
    `0010` sont là, et les valeurs Vault sont posées.
 4. Build **`preview`** (qui pointe sur staging) et parcours complet sur appareil.
 5. **Seulement alors**, appliquer les mêmes migrations à la prod, puis build `production`.
 
 La règle tient en une phrase : *une migration n'atteint la prod qu'après être passée par
-staging*. Et pour `0013`, chaque passage demande en plus de poser dans Vault le secret
+staging*. Et pour `0015`, chaque passage demande en plus de poser dans Vault le secret
 que la fonction de cet environnement détient déjà — sans quoi le digest part avec un
 en-tête nul. C'est la transition expand/contract du palier 2, à faire deux fois.
 
-### Premier passage réel : `0014`
+### Premier passage réel : `0016`
 
-La procédure ci-dessus n'avait jamais été parcourue. `0014_revoke_anon_api_grants.sql` est
+La procédure ci-dessus n'avait jamais été parcourue. `0016_revoke_anon_api_grants.sql` est
 le premier changement à l'emprunter, et il a été choisi pour ça : petit, issu d'un finding
 de ce palier, et limité à des privilèges.
 
@@ -488,9 +488,9 @@ privilèges eux-mêmes plutôt que sur un de leurs symptômes. Elle échouait en
 (il restait `REFERENCES/TRIGGER/TRUNCATE`), et quand elle casse elle nomme ce qui reste.
 
 **Ce que la mesure sur staging a montré, et que le raisonnement avait manqué.** Avant
-`0014`, avec la clé publiable et aucune session :
+`0016`, avec la clé publiable et aucune session :
 
-| table | avant `0014` | pourquoi |
+| table | avant `0016` | pourquoi |
 | --- | --- | --- |
 | `profiles`, `watch_entries`, `episode_progress` | 401 `42501` | `permission denied for function has_friend_link` — c'est la **policy** qui échoue, `0011` n'ayant accordé `EXECUTE` sur les helpers `private` qu'à `authenticated` et `service_role` |
 | `friendships`, `media`, `push_tokens` | **200 `[]`** | atteignables : aucune policy ne s'applique à `anon`, donc une réponse vide bien formée |
@@ -500,7 +500,7 @@ Aucune donnée exposée, donc — mais trois tables atteignables, et la protecti
 autres venant d'un `EXECUTE` accordé par une migration qui n'avait rien à voir avec les
 privilèges d'API. Une coïncidence, pas une intention, et je ne l'aurais pas su sans mesurer.
 
-Après `0014`, les six répondent uniformément `401 / 42501 permission denied for table <x>` :
+Après `0016`, les six répondent uniformément `401 / 42501 permission denied for table <x>` :
 l'échec se produit à la couche des privilèges, et plus par ricochet. `authenticated` et
 `service_role` sont inchangés, relus après coup.
 
@@ -511,8 +511,28 @@ que les chemins `authenticated` fonctionnent toujours vient de la suite pgTAP lo
 travaillait sur la stack partagée. Le rejeu à froid est donc couvert par la CI, qui démarre
 un stack neuf — pas par moi.
 
-**`0014` n'est pas appliqué en production** : c'est l'étape 5 de la procédure, et elle
+**`0016` n'est pas appliqué en production** : c'est l'étape 5 de la procédure, et elle
 demande ton feu vert.
+
+**Le merge avec `master` a révélé un troisième problème, dans la convention elle-même.**
+Deux branches ont produit un `0013` chacune : `0013_digest_schedule` ici,
+`0013_nas_webhook_tokens` sur master. Git a fusionné sans rien signaler — les noms de
+fichiers diffèrent — mais `version` est la **clé primaire** de
+`supabase_migrations.schema_migrations`, donc le second insert échoue et `supabase db reset`
+casse. L'historique local portait en plus un `0014_recommendations` venu d'une troisième
+session : mon `0014` allait donc collisionner une seconde fois. J'ai renuméroté les miens en
+`0015` et `0016`, en laissant `0014` à cette session.
+
+Le fond n'est pas réglé : **une numérotation séquentielle écrite à la main ne survit pas aux
+branches parallèles.** `supabase migration new` génère justement des horodatages
+(`20261031…`), qui ne peuvent pas collisionner. Basculer la convention toucherait des
+fichiers de `master`, donc c'est une décision à prendre — pas un geste de résolution de
+conflit.
+
+Le merge a aussi apporté `nas_webhook_tokens`, qui accorde à `authenticated` et
+`service_role` mais ne dit rien d'`anon` : la table arrive donc sur le cloud avec `anon` à
+`arwdDxtm`, exactement le trou que `0016` venait de boucher ailleurs. Elle y est ajoutée.
+Et la prod l'a déjà reçue — c'est aujourd'hui sa seule table dans ce cas.
 
 **Concept** — *Environment promotion*. Un artefact (ou une migration) progresse par
 paliers identiques ; il n'est jamais rebâti différemment pour la prod. Corollaire sur
