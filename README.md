@@ -118,6 +118,12 @@ erreur sur une base vide. Ce qu'il faut savoir :
   policies RLS de chaque table ; `anon` n'en reçoit aucun, volontairement.
   ⚠️ Cette migration n'est pas encore appliquée sur le projet cloud (qui porte les
   droits hérités de l'ancien défaut) — voir `FORMATION-DEPLOIEMENT.md`, palier 3.
+- **Planification** — `0013_digest_schedule.sql` déclare le job `pg_cron`, qui lit son
+  secret et son URL de base dans Vault au moment de l'appel. Ces deux valeurs sont de
+  la configuration, pas du schéma : `supabase/seed.sql` les pose pour le local (et y
+  désactive le job, un stack de dev n'ayant pas à notifier qui que ce soit). Sur un
+  projet déployé, il faut les y mettre une fois — sinon le job échoue au tir et la
+  raison apparaît dans `cron.job_run_details`.
 - **Fonction** — `supabase functions serve --env-file supabase/functions/.env`.
   Les secrets sont lus dans ce fichier (non commité) ; le conteneur ne les recharge
   qu'au (re)démarrage de `serve`.

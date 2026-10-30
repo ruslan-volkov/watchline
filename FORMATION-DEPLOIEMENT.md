@@ -200,12 +200,61 @@ du système n'est plus décrit par le code.
   2. Un script de provisionnement idempotent (`scripts/provision-cron.mjs`) qui lit le
      secret dans l'environnement et appelle `cron.unschedule` puis `cron.schedule`.
 - Dans les deux cas : **l'idempotence**. Rejouer la migration ou le script deux fois ne
-  doit pas créer deux jobs. `cron.schedule` sur un nom existant échoue — gère-le.
+  doit pas créer deux jobs. (J'annonçais que `cron.schedule` échoue sur un nom existant :
+  c'est faux depuis pg_cron 1.4, il met à jour. Le vrai piège est ailleurs — voir plus bas.)
 - Vérifier depuis la base : `select * from cron.job;` doit correspondre exactement à ce
   que décrit le repo.
 
 **Réussi quand** — Un projet Supabase neuf reçoit le schéma **et** sa planification par
 la seule exécution de ce qui est versionné. Aucune étape manuelle au tableau de bord.
+
+**🟡 Fait en local le 2026-10-30, pas appliqué en production.**
+
+Livré : `supabase/migrations/0013_digest_schedule.sql` déclare le job, qui lit son
+secret *et* son URL de base dans Vault au moment de l'appel — sa commande ne contient
+donc ni l'un ni l'autre et devient committable. `supabase/seed.sql` (jamais appliqué à
+un projet déployé) pose les deux valeurs pour le local et y désactive le job.
+
+Vérifié par rejeu à froid, 14 migrations sur base vide :
+
+| Contrôle | Résultat |
+| --- | --- |
+| jobs après rejeu | 1, `0 * * * *` |
+| secret dans `cron.job.command` | aucun |
+| migration rejouée 3× | 1 job, même `jobid` |
+| commande stockée exécutée telle quelle | **HTTP 200** |
+| `project_url` manquante | violation NOT NULL, erreur tracée |
+
+1. **`cron.schedule` est un upsert**, pas une erreur — depuis pg_cron 1.4, vérifié en
+   1.6.4. Ce que j'annonçais dans ce fichier était faux. Le vrai piège d'idempotence est
+   ailleurs : **dans le seed**. Une migration qui génère un secret « s'il est absent »
+   casse en silence un projet existant, où il *est* absent de Vault — le job se mettrait
+   à envoyer une valeur que la fonction déployée ignore. D'où un choix explicite :
+   `0013` ne seed rien du tout.
+2. **`supabase db reset` sort en code 0 alors que le seed a échoué.** Mon premier seed
+   faisait un `update cron.job`, refusé (`42501`, la table n'est pas modifiable par ce
+   rôle — il faut `cron.alter_job`). Le message apparaît dans la sortie, mais le code de
+   retour dit « tout va bien ». Un script de CI qui se fie au code de sortie publierait
+   un environnement à moitié configuré.
+3. **Le rejeu préserve `active`.** Pratique en local, mais la contrepartie compte : un
+   job que quelqu'un a désactivé en production ne sera pas réactivé par un redéploiement.
+   L'IaC décrit ici la planification, pas son activation.
+4. **L'échec est bruyant d'un côté seulement.** Sans `project_url`, `net.http_post` viole
+   une contrainte NOT NULL et l'erreur est tracée dans `cron.job_run_details`. Sans le
+   secret seul, en revanche, la requête part avec un en-tête nul et reçoit un 401 : visible
+   dans `net._http_response`, mais le job est compté comme réussi. L'asymétrie est dans
+   pg_net, pas dans notre code.
+5. **Ce que ce palier ne règle pas** : le secret vit toujours dans *deux* systèmes — Vault
+   et la variable d'env de la fonction. La rotation garde donc sa fenêtre. Ce qui a changé,
+   c'est qu'elle ne demande plus d'écrire la valeur dans du SQL : `vault.update_secret`
+   d'un côté, `supabase secrets set --env-file` de l'autre, deux gestes automatisables
+   sans lire la valeur. Supprimer la fenêtre pour de bon suppose une source unique — soit
+   la fonction lit le secret en base, soit on abandonne le secret partagé pour la
+   vérification du JWT par la plateforme. À décider, pas à faire ici.
+
+**Pour l'appliquer en production**, il faudra d'abord poser dans Vault le secret que la
+fonction détient *déjà*, sinon le job part avec un en-tête nul dès la migration passée.
+C'est une transition *expand/contract*, comme `0011` l'a fait pour les helpers RLS.
 
 **Concept** — *Infrastructure as code* et idempotence. Tout état de production créé à la
 main est une dette invisible, découverte au pire moment. Et le fait que ce soit un secret
