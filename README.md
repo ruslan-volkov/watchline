@@ -89,9 +89,17 @@ environnements EAS, et `eas.json` associe chaque profil au sien (`development`, 
 `production`). Changer d'environnement est donc un changement de build, pas de fichier —
 voir `FORMATION-DEPLOIEMENT.md`, palier 3.
 
+Il existe deux projets Supabase — production et staging — et le dépôt n'en nomme aucun.
+Une migration passe par staging avant d'atteindre la prod ; la procédure est dans
+`FORMATION-DEPLOIEMENT.md`, palier 3.
+
 Le schéma est versionné dans [`supabase/migrations/`](supabase/migrations). Être sur
-`master` ne veut pas dire être appliqué : rien n'automatise encore le déploiement, et
-`0013` ne l'est pas.
+`master` ne veut pas dire être appliqué : rien n'automatise encore le déploiement.
+Staging porte les 13 migrations, la prod n'a ni `0010` ni `0013`. Et **`supabase db push`
+n'est pas utilisable sur ces projets** : leur historique porte des versions horodatées qui
+ne correspondent pas aux noms de fichiers, donc la CLI ne reconnaîtrait aucune migration
+comme appliquée et rejouerait tout. Les migrations se posent par l'API de management ou le
+tableau de bord.
 
 ### ⚠️ Étape manuelle : confirmation e-mail
 Par défaut, Supabase exige une confirmation par e-mail à l'inscription (pas de session

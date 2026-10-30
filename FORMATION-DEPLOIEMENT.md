@@ -284,7 +284,7 @@ Il n'existe aucun endroit où se tromper.
 **Réussi quand** — Tu peux casser staging sans conséquence, et une migration atteint la
 prod seulement après y être passée.
 
-**🟡 Arbitrage tranché et côté app préparé le 2026-10-30. Staging pas encore créé.**
+**🟡 Staging créé et provisionné le 2026-10-30. Un pas manuel reste à faire.**
 
 **L'arbitrage se règle sur les chiffres, pas sur les goûts.** Organisation `RuslanCorp`,
 plan **free** :
@@ -321,14 +321,108 @@ Deux réserves honnêtes :
   ni installé ni en dépendance. On ne sait donc pas avec quelle URL Supabase le build de
   production part aujourd'hui — ce qui est, en soi, le problème que ce palier attaque.
 
-### Procédure de promotion (applicable dès que staging existe)
+### Ce que la création de staging a révélé
+
+`watchline-staging` (`lmagsjyusqjxpngpqqcn`, eu-west-3, 0 $/mois) porte les 13 migrations,
+le job `pg_cron` de `0013`, ses deux valeurs Vault et les trois Edge Functions. Cinq choses
+sont apparues, dont deux qui invalident ce que ce dépôt affirmait.
+
+**1. `supabase db push` ne peut pas être le chemin de déploiement de ce projet.**
+L'historique de la prod porte des versions horodatées et des noms qui ne sont pas ceux des
+fichiers (`initial_schema`, `push_tokens_and_cron`, mais aussi `0008_profiles_timezone`) :
+tout a été appliqué par le tableau de bord ou l'API, jamais par `db push`. La CLI
+comparerait les versions du dossier (`0001`…`0013`) à celles de la base, n'en trouverait
+aucune, et rejouerait tout — `create type media_type` échouerait immédiatement. La
+procédure ci-dessous est corrigée en conséquence. Remettre `db push` en service demanderait
+un `supabase migration repair` sur chacun des deux projets : c'est une décision du palier 4,
+pas un détail. En attendant, staging a reçu ses 13 migrations par l'API de management, donc
+avec la même convention horodatée que la prod — au moins les deux projets se ressemblent.
+
+**2. Le commentaire de `0010_api_grants.sql` se trompe sur la cause.** Il affirme que
+Supabase n'accorde plus le DML sur les nouveaux objets de `public` et que « le projet cloud
+est antérieur au changement ». Mesuré sur un projet créé le jour même :
+
+| défaut `postgres` dans `public` | local (CLI 2.109) | cloud (staging neuf **et** prod) |
+| --- | --- | --- |
+| `anon` | `Dxtm` | `arwdDxtm` |
+| `authenticated` | `Dxtm` | `arwdDxtm` |
+
+La divergence n'est pas *ancien projet vs nouveau*, c'est **l'image locale de la CLI vs la
+plateforme cloud**. `0010` reste nécessaire — sans lui, le rejeu à froid en local échoue en
+42501 — mais il décrit mal pourquoi. Sans second projet, impossible de le savoir : un seul
+environnement cloud ne permet pas de distinguer « ancien » de « cloud ».
+
+**3. Corollaire : `0010` n'accorde que, il ne révoque jamais.** Sur le cloud `anon` a déjà
+tous les privilèges ; l'appliquer en prod ne lui retirerait donc rien, alors que le fichier
+affirme « `anon` gets nothing, on purpose ». Les lignes restent protégées (toutes les
+policies passent par `auth.uid()`, nul pour `anon` ; `media` est même `to authenticated`),
+et `TRUNCATE` — le seul privilège qui ignore RLS — n'est pas exposé par PostgREST. Donc pas
+de porte ouverte, mais un écart entre ce que le fichier décrit et ce qui est en place. Le
+corriger demande un `0014` qui révoque explicitement, et non une retouche de `0010` qui est
+déjà appliqué : c'est précisément le genre de changement qu'on veut voir passer par staging
+d'abord.
+
+**4. `verify_jwt = false` voyage bien avec le dépôt.** Après déploiement, staging rend
+`verify_jwt: false` pour `daily-digest` et `true` pour les deux autres, conformément à
+`config.toml`. Ce réglage est donc réellement du code, et pas un interrupteur oublié dans le
+tableau de bord de la prod — autre chose qu'on ne pouvait pas savoir avec un seul projet.
+
+**5. Deux environnements veulent deux fichiers de secrets, et `.gitignore` ne suivait pas.**
+Il ignorait `.env` et `.env*.local` — mais pas `.env.staging`. Dans un dépôt dont
+l'historique contient déjà un secret en clair, le piège était trop beau : la règle est
+devenue `.env*` avec `!.env.example`.
+
+**Ce qui a été vérifié sur staging, pas en local**
+- 13 migrations rejouées à froid sans erreur. `supabase_vault` est présent par défaut sur un
+  projet neuf ; `pg_cron` et `pg_net` ne le sont pas et sont bien créés par `0004`.
+- Le job existe, actif, `0 * * * *`, et **sa commande ne contient aucun secret**.
+- La commande stockée, exécutée à la main : la requête part de la base, atteint la fonction
+  et revient. Les deux lectures Vault se résolvent donc réellement — une valeur manquante
+  aurait échoué sur le `url` NOT NULL de `pg_net`.
+- Sans `CRON_SECRET`, la fonction rend `500 WORKER_ERROR` sur toute requête, en-tête inclus.
+  Le fail-closed du palier 1 n'était pas un artefact de la machine de dev.
+
+**Parité imparfaite, à savoir** — staging tourne sur Postgres 17.11.0.011, la prod sur
+17.6.1.141. Staging est donc *en avance*, ce qui est le mauvais sens : un comportement qui
+passe sur staging peut manquer en prod. On ne choisit pas la version d'un projet Supabase.
+
+**Le pas manuel qui reste, et pourquoi il est manuel.** Le secret doit exister dans deux
+systèmes : Vault (que lit le job) et l'environnement de la fonction. Vault le détient déjà,
+généré par Postgres via `gen_random_bytes` — sa valeur n'est donc jamais passée par un outil
+ni par une conversation. Pour le poser côté fonction, il faut le **lire**, et aucun chemin ne
+le permet sans l'exposer : la CLI garde son jeton dans le keychain, et le mot de passe de la
+base de staging est généré à la création puis jamais affiché. C'est le constat du palier 1,
+reproduit sur un environnement neuf : *installer un secret partagé dans deux systèmes exige
+que quelqu'un le lise*. Dans l'éditeur SQL de staging :
+
+```sql
+select decrypted_secret from vault.decrypted_secrets where name = 'digest_cron_secret';
+```
+
+puis écrire `supabase/functions/.env.staging` (désormais ignoré par git) avec ce
+`CRON_SECRET` et le `TMDB_ACCESS_TOKEN`, et :
+
+```bash
+supabase secrets set --env-file supabase/functions/.env.staging --project-ref lmagsjyusqjxpngpqqcn
+```
+
+**La vraie correction est ailleurs, et elle clôt le palier 1.** Tant que le secret vit dans
+deux systèmes, la rotation reste un geste à deux mains. Si la fonction lisait son secret
+depuis Vault — elle a déjà `service_role`, mais `vault.decrypted_secrets` ne lui est pas
+lisible, il faudrait donc une fonction `security definer` dans `private` — la base
+deviendrait la source unique : la rotation tiendrait en un `vault.update_secret`, sans second
+système et sans franchissement. C'est une décision de conception, pas une correction de bug,
+donc je ne l'ai pas prise seul.
+
+### Procédure de promotion (corrigée après création de staging)
 
 1. **Réveiller staging** depuis le tableau de bord (projet free, probablement en pause).
-2. `supabase db push --project-ref <staging>` — applique les migrations manquantes.
+2. Appliquer les migrations manquantes **par l'API de management ou le tableau de bord**,
+   dans l'ordre des fichiers. Pas `supabase db push` : voir le point 1 ci-dessus.
 3. **Vérifier sur staging, pas en local** : `cron.job` correspond à `0013`, les droits de
    `0010` sont là, et les valeurs Vault sont posées.
 4. Build **`preview`** (qui pointe sur staging) et parcours complet sur appareil.
-5. **Seulement alors**, `supabase db push --project-ref <prod>`, puis build `production`.
+5. **Seulement alors**, appliquer les mêmes migrations à la prod, puis build `production`.
 
 La règle tient en une phrase : *une migration n'atteint la prod qu'après être passée par
 staging*. Et pour `0013`, chaque passage demande en plus de poser dans Vault le secret
