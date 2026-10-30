@@ -2,6 +2,13 @@ import { supabase } from '@/lib/supabase';
 import type { Tables } from '@/types/db';
 
 export type PublicProfile = Pick<Tables<'profiles'>, 'id' | 'username' | 'avatar_url'>;
+
+/**
+ * A linked user's profile. Beyond the public fields it carries their sharing
+ * choice, so a screen can say "doesn't share" instead of inferring it from an
+ * empty list. Only readable for friends and pending requests (profiles RLS).
+ */
+export type FriendProfile = PublicProfile & Pick<Tables<'profiles'>, 'activity_visible'>;
 export type FriendshipRow = Tables<'friendships'>;
 
 /**
@@ -28,8 +35,8 @@ export function notifyFriendAccepted(friendshipId: string): Promise<void> {
 
 /** A friendship with both linked profiles resolved (requester = user_id side). */
 export interface FriendshipWithProfiles extends FriendshipRow {
-  requester: PublicProfile | null;
-  addressee: PublicProfile | null;
+  requester: FriendProfile | null;
+  addressee: FriendProfile | null;
 }
 
 /** One line of a friend's passive activity ("Regarde …"). */
@@ -51,7 +58,7 @@ export async function fetchFriendships(): Promise<FriendshipWithProfiles[]> {
   const { data, error } = await supabase
     .from('friendships')
     .select(
-      '*, requester:profiles!friendships_user_id_fkey(id,username,avatar_url), addressee:profiles!friendships_friend_id_fkey(id,username,avatar_url)',
+      '*, requester:profiles!friendships_user_id_fkey(id,username,avatar_url,activity_visible), addressee:profiles!friendships_friend_id_fkey(id,username,avatar_url,activity_visible)',
     );
   if (error) throw error;
   return (data ?? []) as unknown as FriendshipWithProfiles[];

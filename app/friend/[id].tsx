@@ -20,6 +20,8 @@ import { PosterPlaceholder } from '@/components/PosterPlaceholder';
 import { RatingStars } from '@/components/RatingStars';
 import { SectionHeader } from '@/components/SectionHeader';
 import { useTheme } from '@/contexts/ThemeContext';
+import { emptyActivityCopy } from '@/features/friends/activityCopy';
+import { useFriends } from '@/features/friends/useFriends';
 import { fetchEntries } from '@/features/watch/api';
 import { track } from '@/lib/analytics';
 import type { MediaType } from '@/media/types';
@@ -29,13 +31,20 @@ export default function FriendProfile() {
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string; name?: string }>();
   const friendId = params.id;
-  const name = params.name ?? 'Ami';
 
-  const { data: entries, isLoading } = useQuery({
+  // The friendship already carries their profile, so the avatar and their
+  // sharing choice come for free — no second round trip for either.
+  const { links, isLoading: linkLoading } = useFriends();
+  const link = links.get(friendId);
+  const profile = link?.profile ?? null;
+  const name = profile?.username ?? params.name ?? 'Ami';
+
+  const { data: entries, isLoading: entriesLoading } = useQuery({
     queryKey: ['friend_entries', friendId],
     queryFn: () => fetchEntries(friendId),
     enabled: !!friendId,
   });
+  const isLoading = entriesLoading || linkLoading;
 
   const watching = useMemo(
     () => (entries ?? []).filter((e) => e.status === 'watching'),
@@ -78,16 +87,12 @@ export default function FriendProfile() {
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            <Avatar name={name} seed={friendId} size={72} />
+            <Avatar name={name} avatarUrl={profile?.avatar_url} seed={friendId} size={72} />
             <Text style={[styles.name, { color: colors.textPrimary }]}>{name}</Text>
           </View>
 
           {empty ? (
-            <EmptyState
-              icon="eye-off-outline"
-              title="Activité masquée"
-              message="Cet ami ne partage pas son activité, ou n'a rien suivi pour l'instant."
-            />
+            <EmptyState {...emptyActivityCopy(link, name)} />
           ) : (
             <>
               {watching.length > 0 ? (

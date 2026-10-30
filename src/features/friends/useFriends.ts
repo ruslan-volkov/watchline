@@ -6,15 +6,24 @@ import {
   fetchFriendActivity,
   fetchFriendships,
   type FriendActivity,
+  type FriendProfile,
   type FriendshipWithProfiles,
-  type PublicProfile,
 } from './api';
 
 export const friendshipsKey = ['friendships'] as const;
 
 export interface AcceptedFriend {
   friendship: FriendshipWithProfiles;
-  profile: PublicProfile | null;
+  profile: FriendProfile | null;
+}
+
+/** Where someone already stands with the signed-in user. */
+export type FriendRelation = 'friend' | 'incoming' | 'outgoing';
+
+/** Everything known about one other user, keyed by their id in `links`. */
+export interface FriendLink {
+  relation: FriendRelation;
+  profile: FriendProfile | null;
 }
 
 /** Derives accepted friends, incoming/outgoing requests, and passive activity. */
@@ -30,8 +39,13 @@ export function useFriends() {
 
   const friendships = useMemo(() => query.data ?? [], [query.data]);
 
-  const other = (f: FriendshipWithProfiles): PublicProfile | null =>
+  const other = (f: FriendshipWithProfiles): FriendProfile | null =>
     f.user_id === me ? f.addressee : f.requester;
+
+  // Read from the row, not from the embedded profile, which is missing whenever
+  // RLS declines to hand it over.
+  const otherId = (f: FriendshipWithProfiles): string =>
+    f.user_id === me ? f.friend_id : f.user_id;
 
   const acceptedFriends = useMemo<AcceptedFriend[]>(
     () =>
@@ -50,6 +64,17 @@ export function useFriends() {
     () => friendships.filter((f) => f.status === 'pending' && f.user_id === me),
     [friendships, me],
   );
+
+  /** Answers "who is this person to me?" for any user id. */
+  const links = useMemo(() => {
+    const map = new Map<string, FriendLink>();
+    for (const f of friendships) {
+      const relation: FriendRelation =
+        f.status === 'accepted' ? 'friend' : f.friend_id === me ? 'incoming' : 'outgoing';
+      map.set(otherId(f), { relation, profile: other(f) });
+    }
+    return map;
+  }, [friendships, me]);
 
   const friendIds = useMemo(
     () => acceptedFriends.map((a) => a.profile?.id).filter(Boolean) as string[],
@@ -75,6 +100,7 @@ export function useFriends() {
     incoming,
     outgoing,
     other,
+    links,
     activityByUser,
   };
 }
