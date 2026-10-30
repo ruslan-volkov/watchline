@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Button } from '@/components/Button';
 import { SectionHeader } from '@/components/SectionHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -20,20 +21,40 @@ export default function Nas() {
   // The token in it is the only credential; the row is created on first view.
   // Kept out of React Query, whose cache is persisted in clear. undefined = loading, null = failed.
   const [webhookToken, setWebhookToken] = useState<string | null | undefined>(undefined);
+  const loadWebhookToken = async (id: string) => {
+    await supabase
+      .from('nas_webhook_tokens')
+      .upsert({ user_id: id }, { onConflict: 'user_id', ignoreDuplicates: true });
+    const { data } = await supabase
+      .from('nas_webhook_tokens')
+      .select('token')
+      .eq('user_id', id)
+      .maybeSingle();
+    setWebhookToken(data?.token ?? null);
+  };
   useEffect(() => {
-    if (!userId) return;
-    (async () => {
-      await supabase
-        .from('nas_webhook_tokens')
-        .upsert({ user_id: userId }, { onConflict: 'user_id', ignoreDuplicates: true });
-      const { data } = await supabase
-        .from('nas_webhook_tokens')
-        .select('token')
-        .eq('user_id', userId)
-        .maybeSingle();
-      setWebhookToken(data?.token ?? null);
-    })();
+    if (userId) void loadWebhookToken(userId);
   }, [userId]);
+
+  const confirmRegenerate = () => {
+    if (!userId) return;
+    Alert.alert(
+      'Générer une nouvelle adresse ?',
+      'L’ancienne cessera de fonctionner : il faudra coller la nouvelle dans Radarr et Sonarr.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Générer',
+          style: 'destructive',
+          onPress: async () => {
+            setWebhookToken(undefined);
+            await supabase.from('nas_webhook_tokens').delete().eq('user_id', userId);
+            await loadWebhookToken(userId);
+          },
+        },
+      ],
+    );
+  };
   const webhookUrl = webhookToken
     ? `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/nas-download-complete?token=${webhookToken}`
     : null;
@@ -88,6 +109,14 @@ export default function Nas() {
         >
           {webhookUrl ?? (webhookToken === null ? 'Adresse indisponible, réessaie plus tard.' : 'Chargement…')}
         </Text>
+        {webhookUrl ? (
+          <Button
+            label="Générer une nouvelle adresse"
+            variant="secondary"
+            onPress={confirmRegenerate}
+            style={{ marginTop: 10 }}
+          />
+        ) : null}
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>

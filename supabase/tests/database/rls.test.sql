@@ -1,7 +1,7 @@
 -- Row-level security end to end: who can see / change whose data.
 -- Run with `supabase test db` (needs `supabase start`).
 begin;
-select plan(23);
+select plan(25);
 
 -- ============ Fixtures (as the table owner, RLS bypassed) ============
 -- alice <-> bob: accepted friends. alice -> carol: request still pending. dave: stranger.
@@ -75,6 +75,13 @@ select throws_ok(
   $$ update public.nas_webhook_tokens set token = gen_random_uuid() $$,
   '42501', null, 'alice cannot rewrite her NAS webhook token');
 
+create temp table old_nas_token as select token from public.nas_webhook_tokens;
+grant select on old_nas_token to authenticated;
+delete from public.nas_webhook_tokens;
+insert into public.nas_webhook_tokens (user_id) values ('00000000-0000-0000-0000-00000000000a');
+select isnt((select token from public.nas_webhook_tokens), (select token from old_nas_token),
+  'alice can replace her NAS webhook token with a new one');
+
 reset role;
 
 -- ============ bob hides his activity ============
@@ -96,6 +103,11 @@ select is((select count(*)::int from public.push_tokens),
   0, 'dave cannot see alice''s push token');
 select is((select count(*)::int from public.nas_webhook_tokens),
   0, 'dave cannot see alice''s NAS webhook token');
+delete from public.nas_webhook_tokens;
+reset role;
+select is((select count(*)::int from public.nas_webhook_tokens), 1, 'dave cannot delete alice''s NAS webhook token');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000d","role":"authenticated"}', true);
+set local role authenticated;
 
 update public.friendships set status = 'accepted'
  where user_id = '00000000-0000-0000-0000-00000000000a' and friend_id = '00000000-0000-0000-0000-00000000000c';

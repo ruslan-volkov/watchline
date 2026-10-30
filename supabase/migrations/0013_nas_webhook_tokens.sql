@@ -2,7 +2,8 @@
 -- when a download finishes. The NAS has no Supabase session, so the address itself
 -- is the credential: the Edge Function looks the token up to find whose devices to
 -- push to. The app creates the row on first view of the NAS screen (insert is
--- RLS-limited to the caller's own id; the token comes from the column default).
+-- RLS-limited to the caller's own id; the token comes from the column default),
+-- and replaces it by deleting the row and creating a new one if the address leaks.
 create table public.nas_webhook_tokens (
   user_id uuid primary key references public.profiles (id) on delete cascade,
   token uuid not null unique default gen_random_uuid(),
@@ -15,8 +16,10 @@ create policy "nas_webhook_tokens_select_own" on public.nas_webhook_tokens
   for select using (user_id = auth.uid());
 create policy "nas_webhook_tokens_insert_own" on public.nas_webhook_tokens
   for insert with check (user_id = auth.uid());
+create policy "nas_webhook_tokens_delete_own" on public.nas_webhook_tokens
+  for delete using (user_id = auth.uid());
 
 -- Privileges mirror the policies (see 0010). The Edge Function reads the table
 -- with service_role to resolve a token to its user.
-grant select, insert on public.nas_webhook_tokens to authenticated;
+grant select, insert, delete on public.nas_webhook_tokens to authenticated;
 grant select on public.nas_webhook_tokens to service_role;

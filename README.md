@@ -67,7 +67,7 @@ Depuis la fiche d'un film ou d'une série, Watchline demande à **Radarr** (film
 - **Notification de fin** : l'Edge Function `nas-download-complete` reçoit le webhook
   Radarr/Sonarr (« On Import ») et envoie un push. Une seule adresse à coller dans Radarr et
   Sonarr, affichée dans l'écran NAS : elle porte un jeton personnel (table `nas_webhook_tokens`,
-  créé à la première ouverture de l'écran), pas d'en-tête ni de secret à régler. Optionnelle :
+  créé à la première ouverture de l'écran, remplaçable par un bouton si elle fuit), pas d'en-tête ni de secret à régler. Optionnelle :
   sans elle, l'app suit quand même l'état tant qu'elle est ouverte.
   ```bash
   supabase db push --project-ref <ref>
