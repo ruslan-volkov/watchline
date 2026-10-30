@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { Screen } from '@/components/Screen';
@@ -10,6 +10,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDensity } from '@/contexts/DensityContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useFriends } from '@/features/friends/useFriends';
+import { usePushStatus } from '@/features/notifications/PushRegistrationContext';
+import type { PushRegistrationResult } from '@/features/notifications/attempt';
 import { useWatchEntries } from '@/features/watch/useWatchEntries';
 import { track } from '@/lib/analytics';
 import { useTabBarClearance } from '@/theme/layout';
@@ -50,6 +52,38 @@ function Segmented<T extends string>({
   );
 }
 
+/**
+ * What to tell the user when the device never got a push token. Without this the
+ * digest row claimed to be on while nothing could be delivered.
+ */
+function digestNotice(
+  status: PushRegistrationResult | null,
+): { hint: string; openSettings?: boolean } | null {
+  switch (status) {
+    // Still trying, or the token is in: nothing to warn about.
+    case null:
+    case 'registered':
+      return null;
+    case 'permission-denied':
+      return {
+        hint: 'Les notifications sont refusées pour Watchline. Autorise-les pour recevoir le digest.',
+        openSettings: true,
+      };
+    case 'not-a-device':
+      return {
+        hint: 'Un simulateur ne reçoit pas de notifications. Le digest arrivera sur ton téléphone.',
+      };
+    case 'no-project-id':
+      return { hint: 'Cette version de l’app ne peut pas recevoir de notifications.' };
+    case 'write-failed':
+      return { hint: 'Cet appareil n’a pas pu être enregistré. Réessaie en rouvrant l’app.' };
+    case 'error':
+      return {
+        hint: 'Impossible d’enregistrer cet appareil pour l’instant. Réessaie en rouvrant l’app.',
+      };
+  }
+}
+
 function Row({ children }: { children: React.ReactNode }) {
   const { colors } = useTheme();
   return <View style={[styles.row, { borderColor: colors.border }]}>{children}</View>;
@@ -63,7 +97,9 @@ export default function Profile() {
   const router = useRouter();
   const { acceptedFriends, incoming } = useFriends();
   const { data: entries } = useWatchEntries();
+  const pushStatus = usePushStatus();
   const pausedCount = (entries ?? []).filter((e) => e.snoozed).length;
+  const notice = digestNotice(pushStatus);
   const tabBarClearance = useTabBarClearance();
 
   const changeSetting = <T extends string>(setting: string, value: T, apply: (v: T) => void) => {
@@ -158,13 +194,31 @@ export default function Profile() {
 
         <SectionHeader>Notifications</SectionHeader>
         <Row>
-          <Text style={[styles.label, { color: colors.textPrimary }]}>Digest quotidien</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.label, { color: colors.textPrimary }]}>Digest quotidien</Text>
+            {notice ? (
+              <>
+                <Text style={[styles.hint, { color: colors.danger }]}>{notice.hint}</Text>
+                {notice.openSettings ? (
+                  <Text
+                    onPress={() => void Linking.openSettings()}
+                    style={[styles.hintAction, { color: colors.accentInk }]}
+                    accessibilityRole="button"
+                  >
+                    Ouvrir les Réglages
+                  </Text>
+                ) : null}
+              </>
+            ) : null}
+          </View>
           <Switch
             value={profile?.digest_enabled ?? true}
             onValueChange={(v) =>
               changeSetting('digest', String(v), () => void updateProfile({ digest_enabled: v }))
             }
-            trackColor={{ true: colors.accent }}
+            // Off-brand track while no token exists: the preference is still on,
+            // but nothing can be delivered, so it mustn't read as armed.
+            trackColor={{ true: notice ? colors.border : colors.accent }}
           />
         </Row>
         <Row>
@@ -270,6 +324,7 @@ const styles = StyleSheet.create({
   },
   label: { fontSize: 16, fontWeight: '500' },
   hint: { fontSize: 12, marginTop: 2 },
+  hintAction: { fontSize: 12, fontWeight: '700', marginTop: 6 },
   segment: { flexDirection: 'row', borderRadius: 10, padding: 3 },
   segmentItem: {
     paddingHorizontal: 12,
