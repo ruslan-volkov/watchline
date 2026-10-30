@@ -89,6 +89,14 @@ environnements EAS, et `eas.json` associe chaque profil au sien (`development`, 
 `production`). Changer d'environnement est donc un changement de build, pas de fichier —
 voir `FORMATION-DEPLOIEMENT.md`, palier 3.
 
+Aujourd'hui `production` pointe sur le projet de prod et `preview` sur staging.
+`development` est volontairement vide : ces profils chargent le JS depuis Metro, qui lit
+`.env` en local. Inspecter avec `eas env:list --environment <env>`.
+
+> ⚠️ `eas env:pull` écrit par défaut dans `.env.local` — le fichier dont
+> `scripts/use-local-backend.sh` se sert pour pointer sur la stack locale. Passe toujours
+> `--path`, sinon ton dev local repart vers la prod sans rien dire.
+
 Il existe deux projets Supabase — production et staging — et le dépôt n'en nomme aucun.
 Une migration passe par staging avant d'atteindre la prod ; la procédure est dans
 `FORMATION-DEPLOIEMENT.md`, palier 3.

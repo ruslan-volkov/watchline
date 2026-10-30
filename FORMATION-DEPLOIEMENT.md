@@ -284,7 +284,8 @@ Il n'existe aucun endroit où se tromper.
 **Réussi quand** — Tu peux casser staging sans conséquence, et une migration atteint la
 prod seulement après y être passée.
 
-**🟡 Staging créé et provisionné le 2026-10-30. Un pas manuel reste à faire.**
+**🟡 Staging créé et câblé à l'environnement EAS `preview` (2026-10-30/31). Un pas
+manuel reste à faire.**
 
 **L'arbitrage se règle sur les chiffres, pas sur les goûts.** Organisation `RuslanCorp`,
 plan **free** :
@@ -317,9 +318,8 @@ Deux réserves honnêtes :
 - **La précédence entre le bloc `env` d'un profil et les variables de l'environnement EAS
   n'est documentée nulle part.** Nos profils de dev posent `APP_VARIANT` en `env` ; tant
   qu'aucune clé n'existe des deux côtés, la question ne se pose pas. Ne pas en créer.
-- **Je n'ai pas pu vérifier ce que contiennent les environnements EAS** : `eas-cli` n'est
-  ni installé ni en dépendance. On ne sait donc pas avec quelle URL Supabase le build de
-  production part aujourd'hui — ce qui est, en soi, le problème que ce palier attaque.
+- **Réserve levée le 2026-10-31** : `eas-cli` est installé et les trois environnements
+  sont inspectés. Voir « Ce que les environnements EAS contenaient » ci-dessous.
 
 ### Ce que la création de staging a révélé
 
@@ -413,6 +413,49 @@ lisible, il faudrait donc une fonction `security definer` dans `private` — la 
 deviendrait la source unique : la rotation tiendrait en un `vault.update_secret`, sans second
 système et sans franchissement. C'est une décision de conception, pas une correction de bug,
 donc je ne l'ai pas prise seul.
+
+### Ce que les environnements EAS contenaient
+
+`eas-cli` 27.2.0, installé en global : c'est ce que donne la doc, et `eas.json` déclarait
+déjà `cli.version: ">= 12.0.0"`, donc la version est contrainte depuis le dépôt sans
+dépendance supplémentaire. La session Expo était déjà ouverte (`exelion`) et le projet déjà
+lié par `extra.eas.projectId`.
+
+**`production` était correctement câblé. `preview` et `development` étaient vides.**
+
+Un build `preview` partait donc sans aucune variable Supabase. Pas en silence :
+`src/lib/supabase.ts` lève au chargement si l'URL ou la clé manquent, donc l'app plante au
+lancement avec un message explicite — même discipline fail-closed que le digest du palier 1.
+Mais « ça plante tout de suite » n'est une bonne nouvelle que parce que personne n'avait
+encore essayé.
+
+`preview` pointe maintenant sur staging. Le câblage s'est fait par `eas env:pull` depuis
+`production`, puis `eas env:push` vers `preview`, en ne changeant que l'URL et la clé
+publiable : le jeton TMDB n'a ainsi jamais transité par une ligne de commande. `production`
+a été relu après coup, inchangé.
+
+`development` reste vide, volontairement : ces profils ont `developmentClient: true`, donc
+le JS vient de Metro au lancement, et c'est Metro — en local — qui inline les
+`EXPO_PUBLIC_*` depuis `.env` / `.env.local`. L'environnement EAS ne sert qu'au binaire.
+
+**Piège trouvé, propre à ce dépôt** : `eas env:pull` écrit par défaut dans **`.env.local`**,
+le fichier que `scripts/use-local-backend.sh` utilise pour pointer l'app sur la stack locale.
+Un `eas env:pull` sans `--path` l'écrase et redirige silencieusement le dev local vers la
+prod. Toujours passer `--path`.
+
+**Finding de sécurité — et le réflexe habituel ne le corrige pas.**
+`EXPO_PUBLIC_TMDB_ACCESS_TOKEN` est un jeton porteur TMDB, enregistré en visibilité
+`PUBLIC`. Le préfixe `EXPO_PUBLIC_` veut dire qu'il est **inliné dans le bundle JS** : il est
+donc extractible de n'importe quel build livré, et la doc Expo le dit sans détour — « Do not
+put secrets in `EXPO_PUBLIC_` variables. Everything in client bundles is readable by end
+users. » Le passer en `sensitive` **ne changerait rien** : la visibilité protège les logs EAS
+et le tableau de bord, pas le bundle. En `secret`, le build casserait, un secret n'étant pas
+disponible à l'inlining.
+
+La seule correction réelle est de sortir TMDB du client : un Edge Function proxy, le jeton
+restant côté serveur. C'est un changement d'architecture — `src/media/tmdb.ts` appelle TMDB
+en direct — pas une case à cocher, donc noté ici et pas décidé seul. Entre-temps le jeton est
+en lecture seule et révocable depuis le compte TMDB.
 
 ### Procédure de promotion (corrigée après création de staging)
 
