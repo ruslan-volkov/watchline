@@ -65,10 +65,14 @@ Depuis la fiche d'un film ou d'une série, Watchline demande à **Radarr** (film
   n'autorise le HTTP clair que pour une IP ou un nom `.local` ; pour un nom Tailscale, passer en
   HTTPS (`tailscale serve`). Android n'est pas géré (HTTP clair bloqué par défaut).
 - **Notification de fin** : l'Edge Function `nas-download-complete` reçoit le webhook
-  Radarr/Sonarr (« On Import ») et envoie un push. Protégée par `x-webhook-secret` ; l'adresse à
-  coller dans Radarr/Sonarr est affichée dans l'écran NAS.
+  Radarr/Sonarr (« On Import ») et envoie un push. Une seule adresse à coller dans Radarr et
+  Sonarr, affichée dans l'écran NAS : elle porte un jeton personnel (table `nas_webhook_tokens`,
+  créé à la première ouverture de l'écran, remplaçable par un bouton si elle fuit), pas d'en-tête ni de secret à régler. Optionnelle :
+  sans elle, l'app suit quand même l'état tant qu'elle est ouverte.
   ```bash
-  supabase secrets set NAS_WEBHOOK_SECRET=<chaîne aléatoire longue> --project-ref <ref>
+  # Pas de `supabase db push` : l'historique des migrations de la prod (horodatages) ne
+  # correspond pas aux fichiers 000N. Appliquer 0013_nas_webhook_tokens.sql à la main
+  # (éditeur SQL du tableau de bord) puis déployer la fonction :
   supabase functions deploy nas-download-complete --no-verify-jwt --project-ref <ref>
   ```
 - **Essayer sans NAS** : `node scripts/fake-arr.mjs` simule Radarr (:7878) et Sonarr (:8989),

@@ -42,6 +42,16 @@ name: Connect the NAS, then download a movie and a series
 - tapOn:
     id: nas-sonarr-save
 - assertVisible: Connecté · Sonarr 4.0.0-fake
+# The webhook address carries the token the app just created for this user.
+- scrollUntilVisible:
+    element: .*nas-download-complete\?token=[0-9a-f-]{36}
+# A leaked address can be replaced; the screen then shows the new one.
+- scrollUntilVisible:
+    element: .*Générer une nouvelle adresse.*
+- tapOn: .*Générer une nouvelle adresse.*
+- tapOn: Générer
+- scrollUntilVisible:
+    element: .*nas-download-complete\?token=[0-9a-f-]{36}
 - takeScreenshot: nas-configured
 # iOS may offer to save the key as a password once the screen closes.
 - tapOn: Retour
