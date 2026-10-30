@@ -3,27 +3,10 @@ name: Connect the NAS, then download a movie and a series
 # Needs the local Supabase stack, an app build pointed at it, and the fake Radarr/Sonarr
 # (scripts/fake-arr.mjs, started by scripts/e2e-ios.sh) — see .maestro/README.md.
 ---
-- evalScript: ${output.email = 'maestro+' + Date.now() + '@test.local'}
-- launchApp:
-    clearState: true
-    clearKeychain: true
-
-- tapOn: Créer un compte
-- tapOn:
-    id: sign-up-email
-- inputText: ${output.email}
-- tapOn:
-    id: sign-up-password
-- inputText: test-password-123
-- tapOn: Continuer
-- tapOn:
-    text: Not Now|Pas maintenant
-    optional: true
-- tapOn:
-    id: onboarding-username
-- inputText: maestro
-- tapOn: Continuer
-- tapOn: Ajouter un titre
+- runFlow:
+    file: subflows/sign-up.yaml
+    env:
+      USERNAME: maestro
 
 # Onboarding opens search over the tabs; close it to get at the profile.
 - tapOn: Annuler

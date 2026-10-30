@@ -63,4 +63,4 @@ node scripts/fake-arr.mjs >/dev/null &
 FAKE_ARR_PID=$!
 trap 'kill $FAKE_ARR_PID 2>/dev/null || true' EXIT
 
-maestro test .maestro
+maestro test -e API_URL="$API_URL" -e ANON_KEY="$ANON_KEY" .maestro
