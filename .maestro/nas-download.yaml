@@ -1,0 +1,98 @@
+appId: com.rvolkov.watchline.dev
+name: Connect the NAS, then download a movie and a series
+# Needs the local Supabase stack, an app build pointed at it, and the fake Radarr/Sonarr
+# (scripts/fake-arr.mjs, started by scripts/e2e-ios.sh) — see .maestro/README.md.
+---
+- evalScript: ${output.email = 'maestro+' + Date.now() + '@test.local'}
+- launchApp:
+    clearState: true
+    clearKeychain: true
+
+- tapOn: Créer un compte
+- tapOn:
+    id: sign-up-email
+- inputText: ${output.email}
+- tapOn:
+    id: sign-up-password
+- inputText: test-password-123
+- tapOn: Continuer
+- tapOn:
+    text: Not Now|Pas maintenant
+    optional: true
+- tapOn:
+    id: onboarding-username
+- inputText: maestro
+- tapOn: Continuer
+- tapOn: Ajouter un titre
+
+# Onboarding opens search over the tabs; close it to get at the profile.
+- tapOn: Annuler
+- tapOn: Profil, tab.*
+# Rows lead with their icon's glyph in the accessibility label, hence the wildcards.
+- tapOn: .*Téléchargements.*
+
+# Radarr, then Sonarr: the fake accepts the key "test-key".
+- tapOn:
+    id: nas-radarr-url
+- inputText: 127.0.0.1:7878
+- tapOn:
+    id: nas-radarr-key
+- inputText: test-key
+- tapOn:
+    id: nas-radarr-save
+- assertVisible: Connecté · Radarr 5.0.0-fake
+- scrollUntilVisible:
+    element:
+      id: nas-sonarr-url
+# Tapping the section title puts the keyboard away, so it does not cover the next field.
+- tapOn:
+    id: nas-sonarr-url
+- inputText: 127.0.0.1:8989
+- tapOn: SONARR
+- tapOn:
+    id: nas-sonarr-key
+- inputText: test-key
+- tapOn: SONARR
+- scrollUntilVisible:
+    element:
+      id: nas-sonarr-save
+- tapOn:
+    id: nas-sonarr-save
+- assertVisible: Connecté · Sonarr 4.0.0-fake
+- takeScreenshot: nas-configured
+# iOS may offer to save the key as a password once the screen closes.
+- tapOn: Retour
+- tapOn:
+    text: Not Now|Pas maintenant
+    optional: true
+
+# A movie: the download row appears now that the NAS is configured.
+- tapOn: Watchlist, tab.*
+- tapOn: Rechercher un titre
+- tapOn:
+    text: Rechercher un film ou une série
+- inputText: Comète
+# A result row reads "C, Comète, Film · 2026, Ajouter": tap the row, not the text field.
+- tapOn: .*, Comète, Film.*
+- tapOn: .*Télécharger sur le NAS.*
+- assertVisible: .*Demandé au NAS.*
+- extendedWaitUntil:
+    visible: .*Sur le NAS.*
+    timeout: 40000
+- takeScreenshot: movie-on-nas
+- tapOn: Retour
+
+# A series: whole-series row, after Sonarr has loaded the episodes.
+- tapOn:
+    text: Comète
+- eraseText
+- inputText: Signal
+- tapOn: .*, Signal, Série.*
+- tapOn: .*Télécharger la série.*
+- extendedWaitUntil:
+    visible: .*Demandé au NAS.*
+    timeout: 20000
+- extendedWaitUntil:
+    visible: .*Sur le NAS.*
+    timeout: 60000
+- takeScreenshot: series-on-nas

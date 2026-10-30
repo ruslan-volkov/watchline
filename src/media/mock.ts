@@ -215,4 +215,9 @@ export const mockMediaProvider: MediaProvider = {
   async trending(): Promise<MediaSummary[]> {
     return delay(ALL.map(toSummary));
   },
+
+  // The mock has no TVDB ids; the TMDB id stands in so a fake Sonarr can be tried.
+  async getTvdbId(tmdbId: number): Promise<number | null> {
+    return delay(tmdbId);
+  },
 };
