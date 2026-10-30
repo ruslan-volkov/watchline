@@ -116,13 +116,20 @@ erreur sur une base vide. Ce qu'il faut savoir :
   `SELECT` et toute requête échoue en `42501`. Les droits y sont alignés sur les
   policies RLS de chaque table ; `anon` n'en reçoit aucun, volontairement.
   ⚠️ Cette migration n'est pas encore appliquée sur le projet cloud (qui porte les
-  droits héritées de l'ancien défaut) — voir `FORMATION-DEPLOIEMENT.md`, palier 3.
+  droits hérités de l'ancien défaut) — voir `FORMATION-DEPLOIEMENT.md`, palier 3.
 - **Fonction** — `supabase functions serve --env-file supabase/functions/.env`.
   Les secrets sont lus dans ce fichier (non commité) ; le conteneur ne les recharge
   qu'au (re)démarrage de `serve`.
 - **Confirmation e-mail** — désactivée par `config.toml` en local, alors qu'elle exige
-  un clic au tableau de bord sur le cloud. Les mails partent dans Mailpit
-  (http://127.0.0.1:54324), Studio est sur http://127.0.0.1:54323.
+  un clic au tableau de bord sur le cloud. Les mails restent dans le serveur de test
+  local au lieu de partir chez le destinataire.
+- **URL et ports** — demande-les à `supabase status`, ne les écris pas en dur : ils
+  viennent de `config.toml`, et un `supabase start -x <service>` peut laisser Studio
+  ou le serveur de mail de côté (les tests e2e le font).
+- **⚠️ La stack est partagée** — le `project_id` étant dans un fichier versionné, tous
+  les worktrees du dépôt pilotent *les mêmes* conteneurs. Un `supabase db reset` fait
+  donc échouer le run e2e de quelqu'un d'autre, et un `supabase stop` le coupe net.
+  Vérifie avec `docker ps --filter name=watchline` avant de réinitialiser.
 - **Hôtes** — le simulateur iOS partage le `localhost` de la machine. Un émulateur
   Android veut `10.0.2.2`, un appareil physique l'IP du réseau local :
   `./scripts/use-local-backend.sh 192.168.1.20`.

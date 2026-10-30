@@ -23,7 +23,7 @@ sur le projet cloud, à la main. Impossible de repartir de zéro sans toucher la
   vivante casse souvent à froid.
 - `supabase functions serve daily-digest` et l'appeler avec `curl` + le header
   `x-cron-secret`.
-- Pointer l'app dessus : un `.env.local` avec l'URL locale (`http://127.0.0.1:54321`).
+- Pointer l'app dessus : un `.env.local` avec l'URL locale (`http://127.0.0.1:55321`).
 
 **Réussi quand** — `supabase db reset && supabase functions serve` te donne un backend
 complet et jetable, et l'app tourne contre lui sans toucher au projet cloud.

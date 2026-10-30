@@ -385,6 +385,14 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# Deployed with JWT verification off, as in production: pg_cron has no session to send,
+# and the only gate is the x-cron-secret header. Left on, a local request without a JWT
+# is rejected by the platform before it reaches that check, so the real gate goes untested.
+# The notify-friend-* functions keep the default (verified), also like production.
+[functions.daily-digest]
+enabled = true
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 55327
