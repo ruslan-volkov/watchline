@@ -593,6 +593,49 @@ d'avant la renumérotation. Le schéma est juste, l'historique ment un peu. Sans
 rien ne compare ces noms aux fichiers — mais c'est précisément ce qui rend un historique
 inutilisable, et un argument de plus pour la convention horodatée.
 
+### `0017` : fermer le défaut, et ce qu'il refuse de fermer
+
+`0017_revoke_anon_default_privileges.sql` retire à `anon` les privilèges par défaut sur les
+nouveaux objets de `public`, pour le rôle `postgres` — celui sous lequel les migrations
+créent les objets.
+
+**Le test d'abord, et il m'a piégé.** La première assertion portait sur `pg_default_acl`.
+Elle n'a pas échoué : elle a **planté**. `defaclobjtype` est de type `"char"`, donc
+`"char" || unknown` est ambigu, et l'erreur a interrompu le fichier — « You planned 27 tests
+but ran 24 ». Comme mon `grep` ne montrait que les lignes `Failed test`, j'ai cru un instant
+que l'assertion passait. **Un test qui plante n'est pas un test qui passe**, et un filtre
+trop serré sur la sortie suffit à confondre les deux. Avec un cast explicite, elle a échoué
+comme attendu : `r:MAINTAIN r:REFERENCES r:TRIGGER r:TRUNCATE S:UPDATE`.
+
+**Et l'assertion de catalogue ne suffisait pas.** `pg_default_acl` n'enregistre que les
+droits accordés *nommément* à un rôle : il ne voit pas ce qu'`anon` détient via PUBLIC. J'ai
+donc ajouté une assertion comportementale — le test crée une table dans sa propre transaction
+et vérifie qu'`anon` n'y a rien, sans que personne n'ait révoqué. C'est celle-là qui prouve
+que `0017` travaille.
+
+**Les fonctions sont volontairement absentes, après avoir essayé.** `revoke all on functions
+from anon` retire bien l'entrée `anon=X` de l'ACL par défaut, mais ne change **rien
+d'observable** : une fonction neuve dans `public` arrive avec `proacl` à NULL, donc le défaut
+interne de PostgreSQL — `EXECUTE` à **PUBLIC** — et `anon` est membre de PUBLIC. Mesuré en
+local, puis à nouveau sur staging avec une fonction-sonde, où `has_function_privilege` sur
+`public` confirmait la provenance du droit. Fermer ça demande de révoquer à PUBLIC, ce qui
+porte plus loin qu'`anon` et ce qui, à l'essai, s'est comporté différemment des deux côtés.
+J'ai donc **retiré la ligne du fichier** plutôt que de garder un commentaire qui promet plus
+que la mesure. La convention qui marche reste celle de `0002` et `0003` : révoquer `EXECUTE`
+fonction par fonction, explicitement.
+
+**Mesuré sur staging**, avec une table, une séquence et une fonction créées puis supprimées :
+table `(aucun)`, séquence `(aucun)`, fonction `EXECUTE` — via PUBLIC. Le trou des tables est
+fermé pour de bon ; celui des fonctions est documenté et ouvert.
+
+**Détail honnête** : staging a reçu la version à trois lignes avant que je retire la
+troisième. Son ACL par défaut n'a donc plus l'entrée `anon=X` sur les fonctions, là où le
+fichier ne la retirerait plus. Sans effet observable — PUBLIC couvre `anon` de toute façon —
+et dans le sens le moins permissif, donc je l'ai laissé ainsi plutôt que de ré-accorder un
+droit pour faire coïncider deux états.
+
+**`0017` n'est pas appliqué en production.**
+
 **Concept** — *Environment promotion*. Un artefact (ou une migration) progresse par
 paliers identiques ; il n'est jamais rebâti différemment pour la prod. Corollaire sur
 mobile : la config est injectée au build, donc « le même artefact partout » n'est pas
