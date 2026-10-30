@@ -284,6 +284,57 @@ Il n'existe aucun endroit où se tromper.
 **Réussi quand** — Tu peux casser staging sans conséquence, et une migration atteint la
 prod seulement après y être passée.
 
+**🟡 Arbitrage tranché et côté app préparé le 2026-10-30. Staging pas encore créé.**
+
+**L'arbitrage se règle sur les chiffres, pas sur les goûts.** Organisation `RuslanCorp`,
+plan **free** :
+
+| | Second projet | Branches Supabase |
+| --- | --- | --- |
+| Coût | **0 $/mois** | 0,01344 $/h, soit ≈ 9,80 $/mois en permanence |
+| Disponible sur le plan free | oui | **non — branching = plan Pro** |
+| Cycle de vie | permanent | éphémère, une par PR |
+
+La comparaison s'effondre d'elle-même : les branches exigent le plan Pro (25 $/mois plus
+le compute). Ce n'est donc pas « moins cher contre plus pratique », c'est « disponible
+contre indisponible ». Le quota free autorise **deux projets actifs** — il y en a un actif
+et cinq en pause, et les projets en pause ne comptent pas.
+
+**Mais le plan free a un piège qui change la nature de staging** : un projet free est mis
+en pause après **7 jours** d'activité faible. Un staging qu'on utilise de temps en temps
+sera donc endormi la plupart du temps, et un projet en pause ne reçoit pas de migration.
+Le coût de cette option n'est pas financier, il est opérationnel — et la procédure de
+promotion doit commencer par le réveil.
+
+**Côté app, j'ai rendu explicite ce qui était déduit.** `eas.json` associe maintenant
+chaque profil à son environnement EAS (`environment`). La déduction automatique d'EAS
+donnait déjà le même résultat — `production` quand `distribution` vaut `store`,
+`development` quand `developmentClient` est vrai, `preview` sinon — donc ce changement ne
+modifie aucun comportement. C'est précisément l'intérêt : la correspondance profil →
+environnement était une règle invisible, elle est maintenant écrite.
+
+Deux réserves honnêtes :
+- **La précédence entre le bloc `env` d'un profil et les variables de l'environnement EAS
+  n'est documentée nulle part.** Nos profils de dev posent `APP_VARIANT` en `env` ; tant
+  qu'aucune clé n'existe des deux côtés, la question ne se pose pas. Ne pas en créer.
+- **Je n'ai pas pu vérifier ce que contiennent les environnements EAS** : `eas-cli` n'est
+  ni installé ni en dépendance. On ne sait donc pas avec quelle URL Supabase le build de
+  production part aujourd'hui — ce qui est, en soi, le problème que ce palier attaque.
+
+### Procédure de promotion (applicable dès que staging existe)
+
+1. **Réveiller staging** depuis le tableau de bord (projet free, probablement en pause).
+2. `supabase db push --project-ref <staging>` — applique les migrations manquantes.
+3. **Vérifier sur staging, pas en local** : `cron.job` correspond à `0013`, les droits de
+   `0010` sont là, et les valeurs Vault sont posées.
+4. Build **`preview`** (qui pointe sur staging) et parcours complet sur appareil.
+5. **Seulement alors**, `supabase db push --project-ref <prod>`, puis build `production`.
+
+La règle tient en une phrase : *une migration n'atteint la prod qu'après être passée par
+staging*. Et pour `0013`, chaque passage demande en plus de poser dans Vault le secret
+que la fonction de cet environnement détient déjà — sans quoi le digest part avec un
+en-tête nul. C'est la transition expand/contract du palier 2, à faire deux fois.
+
 **Concept** — *Environment promotion*. Un artefact (ou une migration) progresse par
 paliers identiques ; il n'est jamais rebâti différemment pour la prod. Corollaire sur
 mobile : la config est injectée au build, donc « le même artefact partout » n'est pas

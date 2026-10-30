@@ -80,10 +80,18 @@ tracking : on suit `usePathname()` depuis le layout racine, comme le recommande 
 - **Auth Apple/Google** : nécessite un development build + config native OAuth.
 
 ## Configuration
-Le fichier `.env` est déjà renseigné avec le projet Supabase `watchline` (`ruagmrftlzfrispfmvsp`).
-Pour repartir sur un autre projet, copie `.env.example` → `.env` et remplis les deux variables.
+Le dépôt ne nomme aucun projet Supabase : `.env` (non commité) décide vers lequel l'app
+parle, `.env.local` le surcharge, et `scripts/use-local-backend.sh` écrit ce dernier pour
+pointer sur la stack locale. Copie `.env.example` → `.env` et remplis les deux variables.
 
-Le schéma est versionné dans [`supabase/migrations/`](supabase/migrations) (déjà appliqué sur le projet cloud).
+En revanche, **un build EAS ne lit pas ces fichiers** : les `EXPO_PUBLIC_*` y viennent des
+environnements EAS, et `eas.json` associe chaque profil au sien (`development`, `preview`,
+`production`). Changer d'environnement est donc un changement de build, pas de fichier —
+voir `FORMATION-DEPLOIEMENT.md`, palier 3.
+
+Le schéma est versionné dans [`supabase/migrations/`](supabase/migrations). Être sur
+`master` ne veut pas dire être appliqué : rien n'automatise encore le déploiement, et
+`0013` ne l'est pas.
 
 ### ⚠️ Étape manuelle : confirmation e-mail
 Par défaut, Supabase exige une confirmation par e-mail à l'inscription (pas de session
