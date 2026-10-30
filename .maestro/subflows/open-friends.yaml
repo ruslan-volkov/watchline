@@ -1,0 +1,12 @@
+appId: com.rvolkov.watchline.dev
+# Relaunches the app and opens the friends list with fresh data. Queries stay fresh for 30 s
+# and the cache survives a relaunch, so the list can show a stale state until pulled.
+---
+- launchApp
+- tapOn: Profil, tab.*
+# The row's title changes with the friend count; its subtitle does not.
+- tapOn: .*activité passive.*
+- swipe:
+    start: 50%,30%
+    end: 50%,70%
+    duration: 800
