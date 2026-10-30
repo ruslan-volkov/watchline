@@ -103,7 +103,7 @@ Une migration passe par staging avant d'atteindre la prod ; la procédure est da
 
 Le schéma est versionné dans [`supabase/migrations/`](supabase/migrations). Être sur
 `master` ne veut pas dire être appliqué : rien n'automatise encore le déploiement.
-Staging porte les 13 migrations, la prod n'a ni `0010` ni `0013`. Et **`supabase db push`
+Staging porte les 14 migrations ; la prod n'a ni `0010`, ni `0013`, ni `0014`. Et **`supabase db push`
 n'est pas utilisable sur ces projets** : leur historique porte des versions horodatées qui
 ne correspondent pas aux noms de fichiers, donc la CLI ne reconnaîtrait aucune migration
 comme appliquée et rejouerait tout. Les migrations se posent par l'API de management ou le

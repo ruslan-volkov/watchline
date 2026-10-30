@@ -1,7 +1,7 @@
 -- Row-level security end to end: who can see / change whose data.
 -- Run with `supabase test db` (needs `supabase start`).
 begin;
-select plan(19);
+select plan(20);
 
 -- ============ Fixtures (as the table owner, RLS bypassed) ============
 -- alice <-> bob: accepted friends. alice -> carol: request still pending. dave: stranger.
@@ -101,6 +101,25 @@ select throws_ok($$ select * from public.profiles $$, '42501', null,
 select throws_ok($$ select * from public.search_profiles('a') $$, '42501', null,
   'anonymous callers cannot run search_profiles');
 reset role;
+
+-- The two assertions above only prove anon cannot SELECT. They passed long before
+-- 0014 because the CLI's local image withholds DML by default -- while the cloud
+-- platform grants anon everything, so the same assertions would fail there. A test
+-- that only ever runs where the assumption happens to hold cannot catch that, which
+-- is why this one checks the privileges themselves rather than one symptom of them.
+-- Listed table by table on purpose: a new table in `public` belongs in 0010's grants
+-- and in this list, or it inherits whatever the platform's default happens to be.
+select is(
+  (select coalesce(string_agg(table_name || ':' || privilege_type, ' '
+                              order by table_name, privilege_type), '')
+     from information_schema.role_table_grants
+    where grantee = 'anon'
+      and table_schema = 'public'
+      and table_name in ('profiles', 'friendships', 'media',
+                         'watch_entries', 'episode_progress', 'push_tokens')),
+  '',
+  'anon holds no privilege at all on the six public tables (0014)'
+);
 
 -- ============ helpers stay off the REST surface ============
 select hasnt_function('public', 'are_friends', array['uuid', 'uuid'],

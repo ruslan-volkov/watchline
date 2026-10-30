@@ -472,6 +472,48 @@ staging*. Et pour `0013`, chaque passage demande en plus de poser dans Vault le 
 que la fonction de cet environnement détient déjà — sans quoi le digest part avec un
 en-tête nul. C'est la transition expand/contract du palier 2, à faire deux fois.
 
+### Premier passage réel : `0014`
+
+La procédure ci-dessus n'avait jamais été parcourue. `0014_revoke_anon_api_grants.sql` est
+le premier changement à l'emprunter, et il a été choisi pour ça : petit, issu d'un finding
+de ce palier, et limité à des privilèges.
+
+**Le test d'abord — et il existait déjà, en se trompant.**
+`supabase/tests/database/rls.test.sql` affirmait depuis le début : « anonymous callers
+cannot read profiles at all (0010 grants anon nothing) ». Cette assertion passait en local
+et aurait échoué sur le cloud, et la CI ne la joue que contre la stack locale : elle ne
+pouvait donc structurellement pas voir l'écart. **Un test vert qui ne tourne qu'à l'endroit
+où son hypothèse est vraie ne prouve rien.** J'ai ajouté une assertion portant sur les
+privilèges eux-mêmes plutôt que sur un de leurs symptômes. Elle échouait en local aussi
+(il restait `REFERENCES/TRIGGER/TRUNCATE`), et quand elle casse elle nomme ce qui reste.
+
+**Ce que la mesure sur staging a montré, et que le raisonnement avait manqué.** Avant
+`0014`, avec la clé publiable et aucune session :
+
+| table | avant `0014` | pourquoi |
+| --- | --- | --- |
+| `profiles`, `watch_entries`, `episode_progress` | 401 `42501` | `permission denied for function has_friend_link` — c'est la **policy** qui échoue, `0011` n'ayant accordé `EXECUTE` sur les helpers `private` qu'à `authenticated` et `service_role` |
+| `friendships`, `media`, `push_tokens` | **200 `[]`** | atteignables : aucune policy ne s'applique à `anon`, donc une réponse vide bien formée |
+| `INSERT` sur `media` | 401 `42501` | `new row violates row-level security policy` |
+
+Aucune donnée exposée, donc — mais trois tables atteignables, et la protection des trois
+autres venant d'un `EXECUTE` accordé par une migration qui n'avait rien à voir avec les
+privilèges d'API. Une coïncidence, pas une intention, et je ne l'aurais pas su sans mesurer.
+
+Après `0014`, les six répondent uniformément `401 / 42501 permission denied for table <x>` :
+l'échec se produit à la couche des privilèges, et plus par ricochet. `authenticated` et
+`service_role` sont inchangés, relus après coup.
+
+**Ce qui n'a pas été vérifié, et il faut le dire.** Le parcours authentifié sur staging :
+il n'y a pas de compte de test et en créer un demanderait la clé `service_role`. La preuve
+que les chemins `authenticated` fonctionnent toujours vient de la suite pgTAP locale
+(20/20), pas de staging. Et je n'ai pas lancé `supabase db reset` : une autre session
+travaillait sur la stack partagée. Le rejeu à froid est donc couvert par la CI, qui démarre
+un stack neuf — pas par moi.
+
+**`0014` n'est pas appliqué en production** : c'est l'étape 5 de la procédure, et elle
+demande ton feu vert.
+
 **Concept** — *Environment promotion*. Un artefact (ou une migration) progresse par
 paliers identiques ; il n'est jamais rebâti différemment pour la prod. Corollaire sur
 mobile : la config est injectée au build, donc « le même artefact partout » n'est pas
