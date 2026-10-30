@@ -134,8 +134,9 @@ Une migration passe par staging avant d'atteindre la prod ; la procédure est da
 
 Le schéma est versionné dans [`supabase/migrations/`](supabase/migrations). Être sur
 `master` ne veut pas dire être appliqué : rien n'automatise encore le déploiement.
-Staging et la prod portent chacun 14 des 15 migrations, mais pas les mêmes :
-`0013_nas_webhook_tokens` manque à staging, `0015_digest_schedule` manque à la prod. Et **`supabase db push`
+Staging porte les 15 migrations ; la prod en porte 14 — il lui manque
+`0015_digest_schedule`, qui ne doit pas partir avant que ses deux valeurs Vault soient
+posées, sinon le digest s'envoie avec un en-tête nul. Et **`supabase db push`
 n'est pas utilisable sur ces projets** : leur historique porte des versions horodatées qui
 ne correspondent pas aux noms de fichiers, donc la CLI ne reconnaîtrait aucune migration
 comme appliquée et rejouerait tout. Les migrations se posent par l'API de management ou le

@@ -561,6 +561,38 @@ Le merge a aussi apporté `nas_webhook_tokens`, qui accorde à `authenticated` e
 `arwdDxtm`, exactement le trou que `0016` venait de boucher ailleurs. Elle y est ajoutée.
 Et la prod l'a déjà reçue — c'est aujourd'hui sa seule table dans ce cas.
 
+### Remise à niveau de staging, et deux trous de plus
+
+Staging était en retard d'une migration sur master. La remise à niveau — `0013_nas_webhook_tokens`
+puis `0016` — a tenu en deux appels, mais elle a fait apparaître deux choses.
+
+**1. Le trou des privilèges par défaut, démontré au lieu d'être supposé.** Dix secondes après
+la création de `nas_webhook_tokens` sur staging, une requête anonyme a reçu **`200 []`**,
+pendant que les six tables déjà révoquées restaient à 401. C'est exactement ce que `0016`
+avait laissé de côté : sur le cloud, `ALTER DEFAULT PRIVILEGES` rouvre la porte pour chaque
+nouvelle table, et une liste explicite ne rattrape pas un oubli. Ce n'est plus un risque
+théorique, c'est mesuré. **Recommandation renforcée** : aligner le défaut du cloud sur celui
+de la CLI vaut mieux qu'un revoke à répéter indéfiniment — mais ça gouverne des objets dont
+aucune migration d'ici n'est propriétaire, donc ça reste à arbitrer.
+
+**2. Un réglage qui n'existait que dans la plateforme — et une panne en attente.** En prod,
+`nas-download-complete` tourne avec `verify_jwt: false`, ce qui est nécessaire : Radarr et
+Sonarr n'ont pas de session Supabase, et le jeton dans l'adresse est le justificatif. Mais
+`config.toml` ne la mentionnait pas, donc son défaut valait `true`. **Un simple
+`supabase functions deploy` aurait donc remis la vérification en marche et cassé le webhook
+en production, sans que personne ne touche à son code.** Le bloc est maintenant dans
+`config.toml`, et le déploiement sur staging l'a confirmé en rendant `verify_jwt: false`.
+Impossible à trouver avec un seul environnement : il fallait comparer ce que le dépôt produit
+à ce que la plateforme porte déjà.
+
+Les quatre fonctions de staging ont désormais les mêmes drapeaux que la prod.
+
+**Et une dérive que j'ai créée moi-même.** L'historique de staging compte 16 lignes pour 15
+fichiers : `0013_digest_schedule` et `0014_revoke_anon_api_grants` y restent sous les noms
+d'avant la renumérotation. Le schéma est juste, l'historique ment un peu. Sans conséquence —
+rien ne compare ces noms aux fichiers — mais c'est précisément ce qui rend un historique
+inutilisable, et un argument de plus pour la convention horodatée.
+
 **Concept** — *Environment promotion*. Un artefact (ou une migration) progresse par
 paliers identiques ; il n'est jamais rebâti différemment pour la prod. Corollaire sur
 mobile : la config est injectée au build, donc « le même artefact partout » n'est pas
