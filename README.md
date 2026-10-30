@@ -69,6 +69,37 @@ npx expo start
 ```
 Puis `i` (simulateur iOS), `a` (Android) ou scanne le QR avec Expo Go.
 
+## Développement local (backend jetable)
+Le schéma et la fonction tournent en local, sans jamais toucher au projet cloud.
+
+```bash
+supabase start                      # Postgres + Auth + Storage + Edge runtime (Docker)
+supabase db reset                   # rejoue les 10 migrations sur une base vierge
+./scripts/use-local-backend.sh      # écrit .env.local (prioritaire sur .env)
+npx expo start                      # l'app parle au backend local
+```
+
+`supabase db reset` est le test de reproductibilité du schéma : il doit passer sans
+erreur sur une base vide. Ce qu'il faut savoir :
+
+- **Droits API** — Supabase n'accorde plus automatiquement le DML sur les nouveaux
+  objets de `public`. Sans `0010_api_grants.sql`, les 6 tables remontent à froid sans
+  `SELECT` et toute requête échoue en `42501`. Les droits y sont alignés sur les
+  policies RLS de chaque table ; `anon` n'en reçoit aucun, volontairement.
+  ⚠️ Cette migration n'est pas encore appliquée sur le projet cloud (qui porte les
+  droits héritées de l'ancien défaut) — voir `FORMATION-DEPLOIEMENT.md`, palier 3.
+- **Fonction** — `supabase functions serve --env-file supabase/functions/.env`.
+  Les secrets sont lus dans ce fichier (non commité) ; le conteneur ne les recharge
+  qu'au (re)démarrage de `serve`.
+- **Confirmation e-mail** — désactivée par `config.toml` en local, alors qu'elle exige
+  un clic au tableau de bord sur le cloud. Les mails partent dans Mailpit
+  (http://127.0.0.1:54324), Studio est sur http://127.0.0.1:54323.
+- **Hôtes** — le simulateur iOS partage le `localhost` de la machine. Un émulateur
+  Android veut `10.0.2.2`, un appareil physique l'IP du réseau local :
+  `./scripts/use-local-backend.sh 192.168.1.20`.
+
+Revenir au cloud : supprimer `.env.local`.
+
 ## Vérifs
 ```bash
 npx tsc --noEmit              # typecheck
