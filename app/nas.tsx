@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -8,13 +9,34 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ArrServiceForm } from '@/features/nas/ArrServiceForm';
 import { SERVICES, serviceLabels } from '@/features/nas/config';
+import { supabase } from '@/lib/supabase';
 
 export default function Nas() {
   const { colors } = useTheme();
   const router = useRouter();
   const { session } = useAuth();
+  const userId = session?.user.id;
   // Where Radarr / Sonarr post when a download finishes (see the Edge Function).
-  const webhookUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/nas-download-complete?user=${session?.user.id}`;
+  // The token in it is the only credential; the row is created on first view.
+  // Kept out of React Query, whose cache is persisted in clear. undefined = loading, null = failed.
+  const [webhookToken, setWebhookToken] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      await supabase
+        .from('nas_webhook_tokens')
+        .upsert({ user_id: userId }, { onConflict: 'user_id', ignoreDuplicates: true });
+      const { data } = await supabase
+        .from('nas_webhook_tokens')
+        .select('token')
+        .eq('user_id', userId)
+        .maybeSingle();
+      setWebhookToken(data?.token ?? null);
+    })();
+  }, [userId]);
+  const webhookUrl = webhookToken
+    ? `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/nas-download-complete?token=${webhookToken}`
+    : null;
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.bg }]} edges={['top']}>
@@ -54,8 +76,8 @@ export default function Nas() {
         <SectionHeader>Notification de fin</SectionHeader>
         <Text style={[styles.intro, { color: colors.textSecondary }]}>
           Pour être prévenu quand un téléchargement est terminé, ajoute dans Radarr et Sonarr
-          (Réglages → Connect → Webhook, événement « On Import ») cette adresse en POST, avec
-          l’en-tête x-webhook-secret.
+          (Réglages → Connect → Webhook, événement « On Import ») cette adresse, en POST. Elle
+          est personnelle : ne la partage pas.
         </Text>
         <Text
           selectable
@@ -64,7 +86,7 @@ export default function Nas() {
             { color: colors.textPrimary, backgroundColor: colors.surface, borderColor: colors.border },
           ]}
         >
-          {webhookUrl}
+          {webhookUrl ?? (webhookToken === null ? 'Adresse indisponible, réessaie plus tard.' : 'Chargement…')}
         </Text>
         <View style={{ height: 40 }} />
       </ScrollView>

@@ -1,7 +1,7 @@
 -- Row-level security end to end: who can see / change whose data.
 -- Run with `supabase test db` (needs `supabase start`).
 begin;
-select plan(19);
+select plan(23);
 
 -- ============ Fixtures (as the table owner, RLS bypassed) ============
 -- alice <-> bob: accepted friends. alice -> carol: request still pending. dave: stranger.
@@ -66,6 +66,15 @@ select throws_ok(
 insert into public.push_tokens (user_id, token) values ('00000000-0000-0000-0000-00000000000a', 'ExponentPushToken[alice]');
 select is((select count(*)::int from public.push_tokens), 1, 'alice sees her own push token');
 
+insert into public.nas_webhook_tokens (user_id) values ('00000000-0000-0000-0000-00000000000a');
+select is((select count(*)::int from public.nas_webhook_tokens), 1, 'alice gets her own NAS webhook token');
+select throws_ok(
+  $$ insert into public.nas_webhook_tokens (user_id) values ('00000000-0000-0000-0000-00000000000b') $$,
+  '42501', null, 'alice cannot create a NAS webhook token for someone else');
+select throws_ok(
+  $$ update public.nas_webhook_tokens set token = gen_random_uuid() $$,
+  '42501', null, 'alice cannot rewrite her NAS webhook token');
+
 reset role;
 
 -- ============ bob hides his activity ============
@@ -85,6 +94,8 @@ set local role authenticated;
 
 select is((select count(*)::int from public.push_tokens),
   0, 'dave cannot see alice''s push token');
+select is((select count(*)::int from public.nas_webhook_tokens),
+  0, 'dave cannot see alice''s NAS webhook token');
 
 update public.friendships set status = 'accepted'
  where user_id = '00000000-0000-0000-0000-00000000000a' and friend_id = '00000000-0000-0000-0000-00000000000c';
