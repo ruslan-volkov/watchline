@@ -23,6 +23,8 @@ import { Toast, type ToastState } from '@/components/Toast';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useEpisodeProgress } from '@/features/episodes/useEpisodeProgress';
 import { episodeKey, planCascade, type EpisodeRef } from '@/features/episodes/cascade';
+import { DownloadIcon, DownloadRow } from '@/features/nas/DownloadControls';
+import { useDownloads, type DownloadScope } from '@/features/nas/useDownloads';
 import { useEntryMutations } from '@/features/watch/useEntryMutations';
 import { useWatchEntries } from '@/features/watch/useWatchEntries';
 import { mediaProvider } from '@/media/provider';
@@ -56,6 +58,7 @@ export default function MediaDetail() {
 
   const seasons = details?.seasons ?? [];
   const progress = useEpisodeProgress(entry?.id, seasons);
+  const downloads = useDownloads(tmdbId, mediaType);
 
   const [ratingOpen, setRatingOpen] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
@@ -186,6 +189,22 @@ export default function MediaDetail() {
     }
   };
 
+  // Tap asks the NAS for the title with its default quality profile; a long
+  // press lets the user pick another one first.
+  const startDownload = async (scope: DownloadScope, chooseProfile = false) => {
+    if (downloads.pending) return;
+    let profileId: number | undefined;
+    if (chooseProfile) {
+      const picked = await downloads.chooseProfile();
+      if (picked === null) return;
+      profileId = picked;
+    }
+    tapHaptic();
+    const outcome = await downloads.request(scope, profileId);
+    if (outcome.ok) setToast({ message: outcome.message });
+    else Alert.alert('Téléchargement impossible', outcome.message);
+  };
+
   const confirmRemove = () => {
     if (!entry) return;
     Alert.alert('Retirer ce titre ?', 'Il sera retiré de ton suivi et de ta watchlist.', [
@@ -257,7 +276,12 @@ export default function MediaDetail() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.bg }]} edges={['top']}>
       <View style={styles.topBar}>
-        <Pressable onPress={() => router.back()} hitSlop={10} accessibilityRole="button">
+        <Pressable
+          onPress={() => router.back()}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="Retour"
+        >
           <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
         </Pressable>
         {entry ? (
@@ -363,6 +387,19 @@ export default function MediaDetail() {
           })}
         </View>
 
+        {/* NAS download */}
+        {downloads.enabled ? (
+          <DownloadRow
+            idleLabel={mediaType === 'tv' ? 'Télécharger la série' : 'Télécharger sur le NAS'}
+            state={mediaType === 'tv' ? downloads.seriesState() : downloads.stateOf()}
+            disabled={downloads.pending}
+            onPress={() => startDownload(mediaType === 'tv' ? { type: 'series' } : { type: 'movie' })}
+            onLongPress={() =>
+              startDownload(mediaType === 'tv' ? { type: 'series' } : { type: 'movie' }, true)
+            }
+          />
+        ) : null}
+
         {/* Rating */}
         {entry ? (
           <Pressable
@@ -426,6 +463,21 @@ export default function MediaDetail() {
                       <Text style={[styles.seasonCount, { color: colors.textMeta }]}>
                         {watched}/{total}
                       </Text>
+                      {downloads.enabled && airedEps.length > 0 ? (
+                        <DownloadIcon
+                          state={downloads.stateOf(airedEps)}
+                          disabled={downloads.pending}
+                          onPress={() =>
+                            startDownload({ type: 'season', seasonNumber: season.seasonNumber })
+                          }
+                          onLongPress={() =>
+                            startDownload(
+                              { type: 'season', seasonNumber: season.seasonNumber },
+                              true,
+                            )
+                          }
+                        />
+                      ) : null}
                       <Pressable
                         onPress={() => toggleSeason(airedEps)}
                         hitSlop={8}
@@ -495,6 +547,31 @@ export default function MediaDetail() {
                           <Text style={[styles.episodeDate, { color: colors.textMeta }]}>
                             {airDateLabel(ep.airDate)}
                           </Text>
+                        ) : null}
+                        {downloads.enabled && !unaired ? (
+                          <View style={styles.episodeDownload}>
+                            <DownloadIcon
+                              state={downloads.stateOf([ep])}
+                              disabled={downloads.pending}
+                              onPress={() =>
+                                startDownload({
+                                  type: 'episode',
+                                  seasonNumber: ep.seasonNumber,
+                                  episodeNumber: ep.episodeNumber,
+                                })
+                              }
+                              onLongPress={() =>
+                                startDownload(
+                                  {
+                                    type: 'episode',
+                                    seasonNumber: ep.seasonNumber,
+                                    episodeNumber: ep.episodeNumber,
+                                  },
+                                  true,
+                                )
+                              }
+                            />
+                          </View>
                         ) : null}
                         {unaired && !isWatched ? (
                           <View style={[styles.checkbox, { borderColor: 'transparent' }]}>
@@ -630,4 +707,5 @@ const styles = StyleSheet.create({
   },
   episodeText: { flex: 1, fontSize: 15, fontWeight: '500' },
   episodeDate: { fontSize: 12, fontWeight: '600', marginLeft: 8 },
+  episodeDownload: { marginLeft: 12 },
 });

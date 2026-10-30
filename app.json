@@ -11,7 +11,11 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.rvolkov.watchline",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocalNetworkUsageDescription": "Watchline contacte ton NAS (Radarr, Sonarr) pour lancer des téléchargements.",
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        }
       }
     },
     "android": {

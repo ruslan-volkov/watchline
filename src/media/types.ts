@@ -74,4 +74,6 @@ export interface MediaProvider {
   getShowStatus(tmdbId: number): Promise<ShowStatus | null>;
   /** Popular titles this week, for the empty search state. */
   trending(): Promise<MediaSummary[]>;
+  /** The TVDB id of a series — what Sonarr identifies shows by. */
+  getTvdbId(tmdbId: number): Promise<number | null>;
 }

@@ -12,6 +12,7 @@ import { AnalyticsProvider } from '@/contexts/AnalyticsContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { DensityProvider } from '@/contexts/DensityContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
+import { NasConfigProvider } from '@/features/nas/NasConfigContext';
 import { PushRegistrationProvider } from '@/features/notifications/PushRegistrationContext';
 import { QUERY_CACHE_MAX_AGE, queryPersister } from '@/lib/queryPersist';
 
@@ -124,7 +125,9 @@ export default function RootLayout() {
               <DensityProvider>
                 <AnalyticsProvider>
                   <PushRegistrationProvider>
-                    <RootNavigator />
+                    <NasConfigProvider>
+                      <RootNavigator />
+                    </NasConfigProvider>
                   </PushRegistrationProvider>
                 </AnalyticsProvider>
               </DensityProvider>

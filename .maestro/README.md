@@ -26,6 +26,9 @@ pas écraser une vraie installation de « Watchline ».
 - `friends.yaml` : demande d'ami, activité visible, puis « Activité masquée ». L'amie est un
   second utilisateur créé et piloté par l'API (`scripts/*.js`, qui reçoivent `API_URL` et
   `ANON_KEY` via `maestro test -e`) : pas besoin d'un second simulateur.
+- `nas-download.yaml` : relie l'app à un Radarr et un Sonarr, puis télécharge un film et une
+  série. Ils sont simulés par `scripts/fake-arr.mjs`, que `scripts/e2e-ios.sh` démarre
+  (clé API `test-key`).
 - `subflows/` : étapes partagées (non lancées seules par `maestro test .maestro`).
 
 > ⚠️ La stack locale `watchline-e2e` est partagée par tous les worktrees qui utilisent

@@ -106,6 +106,11 @@ export const tmdbMediaProvider: MediaProvider = {
       .filter((s): s is MediaSummary => s !== null);
   },
 
+  async getTvdbId(tmdbId: number): Promise<number | null> {
+    const ids = await tmdb<{ tvdb_id?: number | null }>(`/tv/${tmdbId}/external_ids`);
+    return ids.tvdb_id ?? null;
+  },
+
   async getShowStatus(tmdbId: number): Promise<ShowStatus | null> {
     const show = await tmdb<{
       status?: string;

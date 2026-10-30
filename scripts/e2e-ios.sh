@@ -58,4 +58,9 @@ xcodebuild -workspace ios/WatchlineDev.xcworkspace -scheme WatchlineDev \
   -derivedDataPath ios/build build -quiet
 xcrun simctl install booted ios/build/Build/Products/Release-iphonesimulator/WatchlineDev.app
 
+# Stand-ins for Radarr and Sonarr, for the NAS flow.
+node scripts/fake-arr.mjs >/dev/null &
+FAKE_ARR_PID=$!
+trap 'kill $FAKE_ARR_PID 2>/dev/null || true' EXIT
+
 maestro test -e API_URL="$API_URL" -e ANON_KEY="$ANON_KEY" .maestro

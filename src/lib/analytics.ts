@@ -82,6 +82,21 @@ interface EventProps {
   friend_request_sent: void;
   friend_request_accepted: void;
 
+  /** `scope`: what was asked for. `custom_profile`: a quality profile picked by hand. */
+  download_requested: {
+    media_type: MediaType;
+    scope: 'movie' | 'series' | 'season' | 'episode';
+    tmdb_id: number;
+    result: 'requested' | 'already_downloaded';
+    custom_profile: boolean;
+  };
+  /** `reason`: why the NAS request failed (unreachable, unauthorized, …). */
+  download_failed: {
+    media_type: MediaType;
+    scope: 'movie' | 'series' | 'season' | 'episode';
+    reason: string;
+  };
+
   push_registration: { granted: boolean };
   setting_changed: { setting: string; value: string };
 }

@@ -47,6 +47,33 @@ Recherche multi (films + séries), fiche film, fiche série avec saisons/épisod
 - **La réception se teste sur un development build** (le push distant est inactif dans Expo Go).
   `digest_time` par utilisateur n'est pas encore honoré (envoi unique à 08:00 UTC) — amélioration future.
 
+### Téléchargements vers un NAS (fait)
+Depuis la fiche d'un film ou d'une série, Watchline demande à **Radarr** (films) ou **Sonarr**
+(séries, saisons, épisodes) de télécharger le titre. La qualité, les langues et les indexeurs
+(c411…) restent réglés sur le NAS : l'app envoie seulement « télécharge ce titre ».
+
+- **Config** : Profil → NAS (`app/nas.tsx`). Adresse + clé API de chaque service, testées avant
+  d'être enregistrées ; le profil de qualité et le dossier par défaut sont choisis parmi ceux que
+  le NAS déclare. Les clés vont dans le trousseau (`expo-secure-store`), jamais dans le cache
+  React Query (persisté en clair) ni dans Supabase. La config reste sur l'appareil.
+- **Fiche média** : ligne « Télécharger » (film / série), icône par saison et par épisode. Un
+  **appui long** choisit un autre profil de qualité pour ce téléchargement. L'état (en file,
+  téléchargement x %, sur le NAS) se rafraîchit tant que quelque chose est en cours.
+- **Séries** : TMDB → TVDB via `/tv/{id}/external_ids` ; une série neuve est ajoutée sans rien
+  surveiller, puis seuls les épisodes demandés sont surveillés et cherchés.
+- **Réseau** : le NAS doit être joignable depuis le téléphone (Wi-Fi maison, Tailscale…). iOS
+  n'autorise le HTTP clair que pour une IP ou un nom `.local` ; pour un nom Tailscale, passer en
+  HTTPS (`tailscale serve`). Android n'est pas géré (HTTP clair bloqué par défaut).
+- **Notification de fin** : l'Edge Function `nas-download-complete` reçoit le webhook
+  Radarr/Sonarr (« On Import ») et envoie un push. Protégée par `x-webhook-secret` ; l'adresse à
+  coller dans Radarr/Sonarr est affichée dans l'écran NAS.
+  ```bash
+  supabase secrets set NAS_WEBHOOK_SECRET=<chaîne aléatoire longue> --project-ref <ref>
+  supabase functions deploy nas-download-complete --no-verify-jwt --project-ref <ref>
+  ```
+- **Essayer sans NAS** : `node scripts/fake-arr.mjs` simule Radarr (:7878) et Sonarr (:8989),
+  clé API `test-key`. Le parcours est couvert par `.maestro/nas-download.yaml`.
+
 ### Analytics (Phase 2 — fait)
 Tout passe par `src/lib/analytics.ts` : les noms d'événements et leurs propriétés y sont
 typés, donc renommer un événement casse le build au lieu de couper un funnel en deux.
@@ -70,7 +97,7 @@ tracking : on suit `usePathname()` depuis le layout racine, comme le recommande 
   `entry_added`, `entry_status_changed`, `entry_rated`, `entry_snooze_toggled`,
   `entry_removed`, `episode_marked` (`next` / `manual` / `cascade`), `episode_unmarked`,
   `media_opened`, `search_performed`, `friend_request_sent` / `_accepted`,
-  `push_registration`, `setting_changed` — plus `$screen` et le cycle de vie applicatif
+  `download_requested` / `download_failed`, `push_registration`, `setting_changed` — plus `$screen` et le cycle de vie applicatif
   capturés par le SDK. Les gestes sur une entrée portent une propriété `source`
   (`home`, `search`, `media_detail`, `watchlist`…) : le même geste se compare selon
   l'endroit d'où il est offert.
