@@ -1,0 +1,52 @@
+appId: com.rvolkov.watchline.dev
+name: Sign up, pick a username, add a title to the watchlist
+# Needs the local Supabase stack and an app build pointed at it — see .maestro/README.md.
+# TMDB is absent from that build, so search answers from src/media/mock.ts.
+---
+- evalScript: ${output.email = 'maestro+' + Date.now() + '@test.local'}
+- launchApp:
+    clearState: true
+    clearKeychain: true
+
+# Sign-in is the signed-out landing screen; the sign-up form hangs off it.
+- tapOn: Créer un compte
+- tapOn:
+    id: sign-up-email
+- inputText: ${output.email}
+- tapOn:
+    id: sign-up-password
+- inputText: test-password-123
+- tapOn: Continuer
+
+# iOS offers to save the new password and covers the app until it is answered.
+- tapOn:
+    text: Not Now|Pas maintenant
+    optional: true
+
+# Local Supabase has e-mail confirmation off, so signing up lands straight on onboarding.
+- assertVisible: Comment veux-tu qu’on t’appelle ?
+- tapOn:
+    id: onboarding-username
+- inputText: maestro
+- tapOn: Continuer
+- assertVisible: Bienvenue, maestro.*
+- tapOn: Ajouter un titre
+
+# Onboarding opens the search screen on top of the tabs.
+- assertVisible: Tendances cette semaine
+- tapOn:
+    text: Rechercher un film ou une série
+- inputText: Comète
+# A result row is one accessibility element ("C, Comète, Film · 2026, Ajouter"), so the
+# "+" cannot be targeted on its own: tap where it sits on the single result's row.
+- tapOn:
+    point: 92%,19%
+# The button's label ends with the chevron icon's glyph, hence the wildcard.
+- tapOn: À voir.*
+- assertVisible: .*Retirer de mon suivi.*
+
+# The title now shows up in the watchlist tab.
+- tapOn: Annuler
+- tapOn: Watchlist, tab.*
+- assertVisible: .*Comète.*
+- takeScreenshot: watchlist-with-title

@@ -59,6 +59,7 @@ export default function SignUp() {
               <View style={styles.form}>
                 <TextField
                   label="E-mail"
+                  testID="sign-up-email"
                   value={email}
                   onChangeText={setEmail}
                   autoCapitalize="none"
@@ -68,6 +69,7 @@ export default function SignUp() {
                 />
                 <TextField
                   label="Mot de passe"
+                  testID="sign-up-password"
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry

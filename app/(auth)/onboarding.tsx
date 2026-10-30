@@ -61,6 +61,7 @@ export default function Onboarding() {
               <View style={styles.form}>
                 <TextField
                   label="Pseudo"
+                  testID="onboarding-username"
                   value={username}
                   onChangeText={setUsername}
                   autoCapitalize="none"
