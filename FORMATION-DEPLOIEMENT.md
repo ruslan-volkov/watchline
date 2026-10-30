@@ -511,8 +511,35 @@ que les chemins `authenticated` fonctionnent toujours vient de la suite pgTAP lo
 travaillait sur la stack partagée. Le rejeu à froid est donc couvert par la CI, qui démarre
 un stack neuf — pas par moi.
 
-**`0016` n'est pas appliqué en production** : c'est l'étape 5 de la procédure, et elle
-demande ton feu vert.
+**Appliqué en production le 2026-10-31**, `0010` puis `0016`, dans cet ordre.
+
+Pré-vol d'abord, et il n'était pas décoratif : vérifier qu'aucune Edge Function ne lit ces
+tables avec la clé anon. `daily-digest` et `nas-download-complete` utilisent `service_role`.
+Les deux `notify-friend-*` créent bien un client avec la clé anon — mais uniquement pour
+`auth.getUser()`, en transmettant le JWT de l'appelant, donc GoTrue et pas PostgREST :
+aucun privilège de table en jeu. Sans cette lecture, le revoke était un pari.
+
+Mesuré sur la prod, requêtes anonymes avec la clé publiable :
+
+| tables | avant | après |
+| --- | --- | --- |
+| `friendships`, `media`, `push_tokens`, `nas_webhook_tokens` | **200 `[]`** | 401 `42501` |
+| `profiles`, `watch_entries`, `episode_progress` | 401, via le helper `private` | 401 `42501 permission denied for table` |
+
+Contrôles après coup : `authenticated` garde `SELECT` sur `profiles`, `UPDATE` sur
+`watch_entries` et `EXECUTE` sur les deux helpers `private` ; `service_role` garde `SELECT`
+sur `push_tokens`, `watch_entries` et `nas_webhook_tokens` ; `anon` n'a plus `SELECT` nulle
+part. GoTrue répond toujours.
+
+**Ce que ça ne prouve pas** : aucun parcours authentifié n'a été joué sur la prod. La preuve
+comportementale vient de pgTAP en local, où les mêmes droits donnent 25 assertions vertes
+sur 26 — la seule rouge étant celle de `master`, pour une raison sans rapport. Les contrôles
+ci-dessus portent sur les privilèges, pas sur une session réelle.
+
+Dernier détail qui en dit long : l'historique de la prod affiche maintenant `0010_api_grants`
+**après** `0013_nas_webhook_tokens`, parce que les horodatages suivent l'ordre d'application
+et non celui des fichiers. Le dossier et l'historique racontent deux histoires différentes —
+le même problème que celui qui interdit `supabase db push`.
 
 **Le merge avec `master` a révélé un troisième problème, dans la convention elle-même.**
 Deux branches ont produit un `0013` chacune : `0013_digest_schedule` ici,
