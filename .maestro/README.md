@@ -29,6 +29,9 @@ pas écraser une vraie installation de « Watchline ».
 - `nas-download.yaml` : relie l'app à un Radarr et un Sonarr, puis télécharge un film et une
   série. Ils sont simulés par `scripts/fake-arr.mjs`, que `scripts/e2e-ios.sh` démarre
   (clé API `test-key`).
+- `recommendations.yaml` : l'ami recommande une série (via l'Edge Function `recommend-media`,
+  que `scripts/e2e-ios.sh` sert le temps du test), ajout à la liste, envoi d'un titre en
+  retour, puis relance.
 - `subflows/` : étapes partagées (non lancées seules par `maestro test .maestro`).
 
 > ⚠️ La stack locale `watchline-e2e` est partagée par tous les worktrees qui utilisent

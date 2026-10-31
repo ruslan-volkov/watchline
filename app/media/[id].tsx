@@ -25,6 +25,7 @@ import { useEpisodeProgress } from '@/features/episodes/useEpisodeProgress';
 import { episodeKey, planCascade, type EpisodeRef } from '@/features/episodes/cascade';
 import { DownloadIcon, DownloadRow } from '@/features/nas/DownloadControls';
 import { useDownloads, type DownloadScope } from '@/features/nas/useDownloads';
+import { RecommendSheet } from '@/features/recommendations/RecommendSheet';
 import { useEntryMutations } from '@/features/watch/useEntryMutations';
 import { useWatchEntries } from '@/features/watch/useWatchEntries';
 import { mediaProvider } from '@/media/provider';
@@ -61,6 +62,7 @@ export default function MediaDetail() {
   const downloads = useDownloads(tmdbId, mediaType);
 
   const [ratingOpen, setRatingOpen] = useState(false);
+  const [recommendOpen, setRecommendOpen] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [overviewExpanded, setOverviewExpanded] = useState(false);
 
@@ -284,27 +286,37 @@ export default function MediaDetail() {
         >
           <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
         </Pressable>
-        {entry ? (
-          <View style={styles.topActions}>
-            <Pressable
-              onPress={() =>
-                update.mutate({ entryId: entry.id, patch: { snoozed: !entry.snoozed } })
-              }
-              hitSlop={10}
-              accessibilityRole="button"
-              accessibilityLabel={entry.snoozed ? 'Reprendre' : 'Mettre en pause'}
-            >
-              <Ionicons
-                name={entry.snoozed ? 'play-circle-outline' : 'pause-circle-outline'}
-                size={24}
-                color={entry.snoozed ? colors.accentInk : colors.textSecondary}
-              />
-            </Pressable>
-            <Pressable onPress={confirmRemove} hitSlop={10} accessibilityRole="button">
-              <Ionicons name="trash-outline" size={22} color={colors.textSecondary} />
-            </Pressable>
-          </View>
-        ) : null}
+        <View style={styles.topActions}>
+          <Pressable
+            onPress={() => setRecommendOpen(true)}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Recommander à un ami"
+          >
+            <Ionicons name="paper-plane-outline" size={22} color={colors.textSecondary} />
+          </Pressable>
+          {entry ? (
+            <>
+              <Pressable
+                onPress={() =>
+                  update.mutate({ entryId: entry.id, patch: { snoozed: !entry.snoozed } })
+                }
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={entry.snoozed ? 'Reprendre' : 'Mettre en pause'}
+              >
+                <Ionicons
+                  name={entry.snoozed ? 'play-circle-outline' : 'pause-circle-outline'}
+                  size={24}
+                  color={entry.snoozed ? colors.accentInk : colors.textSecondary}
+                />
+              </Pressable>
+              <Pressable onPress={confirmRemove} hitSlop={10} accessibilityRole="button">
+                <Ionicons name="trash-outline" size={22} color={colors.textSecondary} />
+              </Pressable>
+            </>
+          ) : null}
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -610,6 +622,15 @@ export default function MediaDetail() {
         initialNotes={entry?.notes}
         onSubmit={submitRating}
         onSkip={() => setRatingOpen(false)}
+      />
+      <RecommendSheet
+        visible={recommendOpen}
+        summary={details}
+        onClose={() => setRecommendOpen(false)}
+        onSent={(count) => {
+          setRecommendOpen(false);
+          setToast({ message: count > 1 ? `Recommandé à ${count} amis` : 'Recommandation envoyée' });
+        }}
       />
       <Toast toast={toast} onDismiss={() => setToast(null)} />
     </SafeAreaView>

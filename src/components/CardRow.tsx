@@ -19,6 +19,8 @@ interface Props {
   right?: React.ReactNode;
   /** 0..1 — draws a progress bar across the bottom of the card. */
   progress?: number;
+  /** Extra content under the row, across the full width of the card. */
+  footer?: React.ReactNode;
   /** Extra layer clipped to the card's rounded corners (e.g. a confirmation wash). */
   overlay?: React.ReactNode;
   style?: ViewStyle;
@@ -35,6 +37,7 @@ export function CardRow({
   onPress,
   right,
   progress,
+  footer,
   overlay,
   style,
 }: Props) {
@@ -53,6 +56,9 @@ export function CardRow({
     <Pressable
       onPress={onPress}
       accessibilityRole={onPress ? 'button' : undefined}
+      // A footer holds controls of its own, which an accessible card would swallow
+      // into a single element.
+      accessible={footer ? false : undefined}
       style={({ pressed }) => [
         styles.card,
         {
@@ -124,6 +130,8 @@ export function CardRow({
           style={{ marginTop: compact ? 8 : 10 }}
         />
       ) : null}
+
+      {footer}
 
       {overlay}
     </Pressable>
