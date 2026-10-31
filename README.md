@@ -78,6 +78,25 @@ Depuis la fiche d'un film ou d'une série, Watchline demande à **Radarr** (film
 - **Essayer sans NAS** : `node scripts/fake-arr.mjs` simule Radarr (:7878) et Sonarr (:8989),
   clé API `test-key`. Le parcours est couvert par `.maestro/nas-download.yaml`.
 
+### Recommandations
+Recommander un titre à des amis depuis sa fiche (avion en papier), avec un mot optionnel.
+Tout arrive dans une liste unique (`app/recommendations.tsx`, ouverte depuis Profil),
+filtrable en reçues ou envoyées.
+
+- **Relance** : 3 maximum par recommandation, espacées de 24 h. Ces limites, comme le lien
+  d'amitié, sont vérifiées par l'Edge Function `recommend-media`, seule à écrire les
+  recommandations (`rules.ts` est partagé avec l'app).
+- **Discrétion** : l'expéditeur ne sait ni si le titre a été vu ni si on a répondu « Pas pour
+  moi » (table `recommendation_inbox`, lisible par le seul destinataire), et une relance
+  après ce refus répond pareil sans rien envoyer. Il voit « Ajouté » uniquement si le
+  destinataire ajoute le titre depuis la recommandation.
+- **Mise en production** :
+  ```bash
+  # Appliquer 0014_recommendations.sql à la main (voir la note sur les migrations plus
+  # haut), puis déployer la fonction, avec vérification du JWT cette fois :
+  supabase functions deploy recommend-media --project-ref <ref>
+  ```
+
 ### Analytics (Phase 2 — fait)
 Tout passe par `src/lib/analytics.ts` : les noms d'événements et leurs propriétés y sont
 typés, donc renommer un événement casse le build au lieu de couper un funnel en deux.

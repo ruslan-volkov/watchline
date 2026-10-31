@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/contexts/ThemeContext';
+import { useRecommendations } from '@/features/recommendations/useRecommendations';
 import {
   FLOATING_TAB_BAR_HEIGHT,
   FLOATING_TAB_BAR_MARGIN,
@@ -23,6 +24,7 @@ function tabIcon(active: IconName, inactive: IconName) {
 export default function TabsLayout() {
   const { colors, scheme } = useTheme();
   const insets = useSafeAreaInsets();
+  const { unseenCount } = useRecommendations();
   const radius = FLOATING_TAB_BAR_HEIGHT / 2;
   const dark = scheme === 'dark';
   return (
@@ -90,7 +92,12 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="profile"
-        options={{ title: 'Profil', tabBarIcon: tabIcon('person', 'person-outline') }}
+        options={{
+          title: 'Profil',
+          tabBarIcon: tabIcon('person', 'person-outline'),
+          tabBarBadge: unseenCount > 0 ? unseenCount : undefined,
+          tabBarBadgeStyle: { backgroundColor: colors.accent, color: colors.accentText },
+        }}
       />
     </Tabs>
   );
