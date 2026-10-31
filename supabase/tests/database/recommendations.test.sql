@@ -21,7 +21,8 @@ set local role service_role;
 insert into public.recommendations (id, sender_id, recipient_id, media_id, message) values
   ('33333333-3333-3333-3333-333333333333', '00000000-0000-0000-0000-00000000000a',
    '00000000-0000-0000-0000-00000000000b', '11111111-1111-1111-1111-111111111111', 'À voir !');
-select is((select count(*)::int from public.recommendation_inbox),
+select is((select count(*)::int from public.recommendation_inbox
+            where recommendation_id = '33333333-3333-3333-3333-333333333333'),
   1, 'a recommendation gets its inbox row');
 select is((select count(*)::int from public.friendships
             where user_id = '00000000-0000-0000-0000-00000000000a'),
@@ -56,7 +57,7 @@ select throws_ok(
 
 update public.recommendations set added_at = now();
 reset role;
-select is((select added_at from public.recommendations), null,
+select is((select added_at from public.recommendations where id = '33333333-3333-3333-3333-333333333333'), null,
   'the sender cannot claim the recipient added the title');
 
 -- ============ bob, the recipient ============
@@ -74,9 +75,10 @@ select throws_ok(
 update public.recommendations set added_at = now();
 update public.recommendation_inbox set seen_at = now(), dismissed_at = now();
 reset role;
-select isnt((select added_at from public.recommendations), null,
+select isnt((select added_at from public.recommendations where id = '33333333-3333-3333-3333-333333333333'), null,
   'the recipient records that he added the title');
-select isnt((select dismissed_at from public.recommendation_inbox), null,
+select isnt((select dismissed_at from public.recommendation_inbox
+              where recommendation_id = '33333333-3333-3333-3333-333333333333'), null,
   'the recipient dismisses it');
 
 -- ============ dave, a stranger ============

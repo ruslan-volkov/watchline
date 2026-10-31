@@ -92,7 +92,7 @@ filtrable en reçues ou envoyées.
   destinataire ajoute le titre depuis la recommandation.
 - **Mise en production** :
   ```bash
-  # Appliquer 0014_recommendations.sql à la main (voir la note sur les migrations plus
+  # Appliquer 0014 et 0015 (droits) à la main (voir la note sur les migrations plus
   # haut), puis déployer la fonction, avec vérification du JWT cette fois :
   supabase functions deploy recommend-media --project-ref <ref>
   ```
