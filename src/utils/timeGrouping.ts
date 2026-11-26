@@ -1,11 +1,31 @@
 const MONTHS_FR = [
-  'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin',
-  'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.',
+  'janv.',
+  'févr.',
+  'mars',
+  'avr.',
+  'mai',
+  'juin',
+  'juil.',
+  'août',
+  'sept.',
+  'oct.',
+  'nov.',
+  'déc.',
 ];
 
 const MONTHS_FULL = [
-  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
+  'Janvier',
+  'Février',
+  'Mars',
+  'Avril',
+  'Mai',
+  'Juin',
+  'Juillet',
+  'Août',
+  'Septembre',
+  'Octobre',
+  'Novembre',
+  'Décembre',
 ];
 
 /** "Juillet 2026" from an ISO date, for calendar month headers. */
@@ -21,8 +41,18 @@ export function dayMonthLabel(isoDate: string): string {
 }
 
 const MONTHS_LOWER = [
-  'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
-  'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
+  'janvier',
+  'février',
+  'mars',
+  'avril',
+  'mai',
+  'juin',
+  'juillet',
+  'août',
+  'septembre',
+  'octobre',
+  'novembre',
+  'décembre',
 ];
 
 /** "9 juillet 2025" / "1er mars 2026" — full date, for a title's release line. */
@@ -81,7 +111,11 @@ export function isOverdue(isoDate: string | null | undefined): boolean {
 }
 
 /** Contextual one-liner for a title's upcoming release. */
-export function releaseSubtitle(isoDate: string, kind: 'movie' | 'episode', label?: string): string {
+export function releaseSubtitle(
+  isoDate: string,
+  kind: 'movie' | 'episode',
+  label?: string,
+): string {
   const d = daysFromToday(isoDate);
   const ep = label ? `${label} ` : '';
   // Already out: say how long it's been waiting rather than "disponible", which
@@ -91,7 +125,13 @@ export function releaseSubtitle(isoDate: string, kind: 'movie' | 'episode', labe
     return kind === 'movie' ? `Sorti ${since}` : `${ep}dispo ${since}`;
   }
   const when =
-    d === 0 ? "aujourd'hui" : d === 1 ? 'demain' : d < 7 ? `dans ${d} jours` : `dans ${Math.round(d / 7)} sem.`;
+    d === 0
+      ? "aujourd'hui"
+      : d === 1
+        ? 'demain'
+        : d < 7
+          ? `dans ${d} jours`
+          : `dans ${Math.round(d / 7)} sem.`;
   if (kind === 'movie') return d === 0 ? 'Sort aujourd’hui' : `Sort ${when}`;
   return d === 0 ? `${ep}disponible` : `${ep}${when}`;
 }

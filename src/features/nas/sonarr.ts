@@ -1,7 +1,13 @@
 import { ArrError, arrFetch, resolveTargets } from './api';
 import type { ArrConfig } from './config';
 import type { RequestResult } from './radarr';
-import { aggregateState, NONE, stateFromQueueItem, type DownloadState, type QueueItem } from './state';
+import {
+  aggregateState,
+  NONE,
+  stateFromQueueItem,
+  type DownloadState,
+  type QueueItem,
+} from './state';
 
 /** What to download: the whole series, one season, or one episode. */
 export type SeriesScope =
@@ -137,7 +143,10 @@ export async function getSeriesStates(
 
   const [episodes, queue] = await Promise.all([
     arrFetch<SonarrEpisode[]>(config, `/episode?seriesId=${series.id}`),
-    arrFetch<(QueueItem & { episodeId?: number })[]>(config, `/queue/details?seriesId=${series.id}`),
+    arrFetch<(QueueItem & { episodeId?: number })[]>(
+      config,
+      `/queue/details?seriesId=${series.id}`,
+    ),
   ]);
   const queued = new Map(queue.map((item) => [item.episodeId, item]));
 

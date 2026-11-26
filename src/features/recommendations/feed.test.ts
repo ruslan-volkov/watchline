@@ -25,7 +25,14 @@ function rec(overrides: Partial<RecommendationWithDetails>): RecommendationWithD
 }
 
 const sent = (overrides: Partial<RecommendationWithDetails> = {}) =>
-  rec({ sender_id: ME, recipient_id: JULIE.id, sender: SELF, recipient: JULIE, inbox: null, ...overrides });
+  rec({
+    sender_id: ME,
+    recipient_id: JULIE.id,
+    sender: SELF,
+    recipient: JULIE,
+    inbox: null,
+    ...overrides,
+  });
 
 describe('buildFeed', () => {
   it('tells received from sent, and shows the friend on the other end', () => {

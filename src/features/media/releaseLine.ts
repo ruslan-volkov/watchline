@@ -79,9 +79,7 @@ function tvLine(details: MediaDetails): ReleaseLine | null {
   // been quiet, so lead with the last episode.
   if (status === 'Returning Series') {
     return {
-      text: lastDate
-        ? `Suite non datée · dernier épisode le ${on(lastDate)}`
-        : 'Suite non datée',
+      text: lastDate ? `Suite non datée · dernier épisode le ${on(lastDate)}` : 'Suite non datée',
       upcoming: false,
     };
   }

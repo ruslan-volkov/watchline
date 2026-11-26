@@ -78,9 +78,9 @@ describe('releaseLine — series', () => {
   });
 
   it('distinguishes a cancellation', () => {
-    expect(
-      releaseLine({ ...base, status: 'Canceled', lastAirDate: '2024-05-02' })?.text,
-    ).toBe('Annulée · dernier épisode le 2 mai 2024');
+    expect(releaseLine({ ...base, status: 'Canceled', lastAirDate: '2024-05-02' })?.text).toBe(
+      'Annulée · dernier épisode le 2 mai 2024',
+    );
   });
 
   it('calls a new season a return, and a same-season episode the next one', () => {
@@ -130,8 +130,8 @@ describe('releaseLine — series', () => {
       text: 'Pas encore datée',
       upcoming: true,
     });
-    expect(
-      releaseLine({ ...base, status: 'Planned', releaseDate: iso(45) })?.text,
-    ).toMatch(/^Première le /);
+    expect(releaseLine({ ...base, status: 'Planned', releaseDate: iso(45) })?.text).toMatch(
+      /^Première le /,
+    );
   });
 });

@@ -1,12 +1,6 @@
 import { Link } from 'expo-router';
 import { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
@@ -52,7 +46,8 @@ export default function SignUp() {
 
           {needsConfirm ? (
             <Text style={[styles.info, { color: colors.textSecondary }]}>
-              On t’a envoyé un e-mail de confirmation. Confirme ton adresse puis reviens te connecter.
+              On t’a envoyé un e-mail de confirmation. Confirme ton adresse puis reviens te
+              connecter.
             </Text>
           ) : (
             <>
@@ -75,7 +70,9 @@ export default function SignUp() {
                   secureTextEntry
                   placeholder="6 caractères minimum"
                 />
-                {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
+                {error ? (
+                  <Text style={[styles.error, { color: colors.danger }]}>{error}</Text>
+                ) : null}
                 <Button
                   label="Continuer"
                   onPress={onSignUp}

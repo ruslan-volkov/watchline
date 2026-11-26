@@ -72,7 +72,9 @@ describe('attemptPushRegistration', () => {
 
   it('tells a rejected write apart from a successful one', async () => {
     const result = await attemptPushRegistration(
-      env({ saveToken: async () => ({ error: { message: 'new row violates row-level security' } }) }),
+      env({
+        saveToken: async () => ({ error: { message: 'new row violates row-level security' } }),
+      }),
     );
     expect(result).toBe('write-failed');
   });

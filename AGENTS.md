@@ -12,3 +12,4 @@ This project is on Expo SDK 54 (the `expo` version in `package.json`). APIs chan
 - **Dependencies need a reason.** Prefer what's already installed or the platform; say why when you add a package.
 - **Plan multi-step work.** List the plan before executing anything longer than one step.
 - **Stop when stuck or cascading.** If a fix spreads across many files, or the root cause stays unclear, report what you've seen and ask before continuing.
+- **Never skip the hooks.** Don't commit with `--no-verify`. The pre-commit hook formats, lints and typechecks; fix what it reports.

@@ -23,7 +23,10 @@ const pad = (n: number | undefined) => String(n ?? 0).padStart(2, '0');
  */
 export function describeEvent(event: WebhookEvent): PushText | null {
   if (event.eventType === 'Test') {
-    return { title: 'NAS connecté', body: 'Tu seras prévenu ici quand un téléchargement est terminé.' };
+    return {
+      title: 'NAS connecté',
+      body: 'Tu seras prévenu ici quand un téléchargement est terminé.',
+    };
   }
   if (event.eventType !== 'Download' || event.isUpgrade) return null;
 
@@ -40,8 +43,14 @@ export function describeEvent(event: WebhookEvent): PushText | null {
         body: `${event.series.title} : ${episodes.length} épisodes sont sur le NAS.`,
       };
     }
-    const what = episodes.length === 1 ? ` S${pad(episodes[0].seasonNumber)}E${pad(episodes[0].episodeNumber)}` : '';
-    return { title: 'Téléchargement terminé', body: `${event.series.title}${what} est sur le NAS.` };
+    const what =
+      episodes.length === 1
+        ? ` S${pad(episodes[0].seasonNumber)}E${pad(episodes[0].episodeNumber)}`
+        : '';
+    return {
+      title: 'Téléchargement terminé',
+      body: `${event.series.title}${what} est sur le NAS.`,
+    };
   }
   return null;
 }

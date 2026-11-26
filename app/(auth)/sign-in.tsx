@@ -1,12 +1,6 @@
 import { Link } from 'expo-router';
 import { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
@@ -25,7 +19,10 @@ export default function SignIn() {
   const onSignIn = async () => {
     setLoading(true);
     setError(null);
-    const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    const { error: err } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
     if (err) setError(err.message);
     else track('signed_in', { method: 'email' });
     setLoading(false);

@@ -93,13 +93,18 @@ export function useDownloads(tmdbId: number, mediaType: MediaType) {
       return null;
     }
     return new Promise((resolve) => {
-      Alert.alert('Profil de qualité', 'Pour ce téléchargement uniquement.', [
-        ...profiles.map((p) => ({
-          text: p.id === serviceConfig.qualityProfileId ? `${p.name} (défaut)` : p.name,
-          onPress: () => resolve(p.id === serviceConfig.qualityProfileId ? undefined : p.id),
-        })),
-        { text: 'Annuler', style: 'cancel' as const, onPress: () => resolve(null) },
-      ], { cancelable: true, onDismiss: () => resolve(null) });
+      Alert.alert(
+        'Profil de qualité',
+        'Pour ce téléchargement uniquement.',
+        [
+          ...profiles.map((p) => ({
+            text: p.id === serviceConfig.qualityProfileId ? `${p.name} (défaut)` : p.name,
+            onPress: () => resolve(p.id === serviceConfig.qualityProfileId ? undefined : p.id),
+          })),
+          { text: 'Annuler', style: 'cancel' as const, onPress: () => resolve(null) },
+        ],
+        { cancelable: true, onDismiss: () => resolve(null) },
+      );
     });
   };
 
@@ -114,7 +119,10 @@ export function useDownloads(tmdbId: number, mediaType: MediaType) {
         // Usually cached by now; a show TMDB cannot map to TVDB cannot be fetched.
         const id = tvdbId ?? (await mediaProvider.getTvdbId(tmdbId));
         if (id === null) {
-          return { ok: false, message: 'Cette série n’a pas d’identifiant TVDB, Sonarr ne peut pas la trouver.' };
+          return {
+            ok: false,
+            message: 'Cette série n’a pas d’identifiant TVDB, Sonarr ne peut pas la trouver.',
+          };
         }
         result = await requestSeries(serviceConfig, id, scope, profileId);
       }

@@ -2,9 +2,10 @@ import { describeEvent } from './event';
 
 describe('describeEvent', () => {
   it('announces a finished movie with its year', () => {
-    expect(
-      describeEvent({ eventType: 'Download', movie: { title: 'Dune', year: 2021 } }),
-    ).toEqual({ title: 'Téléchargement terminé', body: 'Dune (2021) est sur le NAS.' });
+    expect(describeEvent({ eventType: 'Download', movie: { title: 'Dune', year: 2021 } })).toEqual({
+      title: 'Téléchargement terminé',
+      body: 'Dune (2021) est sur le NAS.',
+    });
   });
 
   it('names a single episode', () => {
@@ -22,7 +23,10 @@ describe('describeEvent', () => {
       describeEvent({
         eventType: 'Download',
         series: { title: 'Severance' },
-        episodes: [{ seasonNumber: 1, episodeNumber: 1 }, { seasonNumber: 1, episodeNumber: 2 }],
+        episodes: [
+          { seasonNumber: 1, episodeNumber: 1 },
+          { seasonNumber: 1, episodeNumber: 2 },
+        ],
       })?.body,
     ).toBe('Severance : 2 épisodes sont sur le NAS.');
   });
@@ -32,7 +36,9 @@ describe('describeEvent', () => {
   });
 
   it('stays quiet for upgrades and other events', () => {
-    expect(describeEvent({ eventType: 'Download', isUpgrade: true, movie: { title: 'Dune' } })).toBeNull();
+    expect(
+      describeEvent({ eventType: 'Download', isUpgrade: true, movie: { title: 'Dune' } }),
+    ).toBeNull();
     expect(describeEvent({ eventType: 'Grab', movie: { title: 'Dune' } })).toBeNull();
     expect(describeEvent({})).toBeNull();
   });

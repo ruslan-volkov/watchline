@@ -16,13 +16,7 @@ interface Props {
 }
 
 /** Themed safe-area container with the standard screen-title header. */
-export function Screen({
-  children,
-  title,
-  headerRight,
-  edges = ['top'],
-  padded = true,
-}: Props) {
+export function Screen({ children, title, headerRight, edges = ['top'], padded = true }: Props) {
   const { colors, typography } = useTheme();
   const { spacing } = useDensity();
 
@@ -32,7 +26,11 @@ export function Screen({
         <View
           style={[
             styles.header,
-            { paddingHorizontal: spacing.screenPadding, paddingTop: spacing.sm, paddingBottom: spacing.sm },
+            {
+              paddingHorizontal: spacing.screenPadding,
+              paddingTop: spacing.sm,
+              paddingBottom: spacing.sm,
+            },
           ]}
         >
           <Text style={[typography.screenTitle, { color: colors.textPrimary }]}>{title}</Text>

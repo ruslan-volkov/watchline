@@ -32,7 +32,9 @@ describe('normalizeUrl', () => {
   });
 
   it('keeps https and drops trailing slashes', () => {
-    expect(normalizeUrl(' https://nas.tailnet.ts.net:7878/ ')).toBe('https://nas.tailnet.ts.net:7878');
+    expect(normalizeUrl(' https://nas.tailnet.ts.net:7878/ ')).toBe(
+      'https://nas.tailnet.ts.net:7878',
+    );
   });
 
   it('keeps a base path used behind a reverse proxy', () => {
@@ -60,7 +62,11 @@ describe('stored NAS config', () => {
 
   it('saving one service leaves the other alone', async () => {
     await saveArrConfig('radarr', radarr);
-    await saveArrConfig('sonarr', { ...radarr, url: 'http://192.168.1.20:8989', apiKey: 'sonarr-key' });
+    await saveArrConfig('sonarr', {
+      ...radarr,
+      url: 'http://192.168.1.20:8989',
+      apiKey: 'sonarr-key',
+    });
     await clearArrConfig('sonarr');
     expect(await loadNasConfig()).toEqual({ radarr });
   });

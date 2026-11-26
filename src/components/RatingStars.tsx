@@ -26,8 +26,7 @@ export function RatingStars({ value, size = 22, onChange }: Props) {
   return (
     <View style={styles.row}>
       {[1, 2, 3, 4, 5].map((star) => {
-        const name =
-          filled >= star ? 'star' : filled >= star - 0.5 ? 'star-half' : 'star-outline';
+        const name = filled >= star ? 'star' : filled >= star - 0.5 ? 'star-half' : 'star-outline';
         const color = filled >= star - 0.5 ? colors.star : colors.starEmpty;
         return (
           <View key={star} style={[styles.star, { width: size, height: size }]}>

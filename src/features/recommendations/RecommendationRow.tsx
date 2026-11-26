@@ -13,7 +13,15 @@ interface Props {
   onNudge: () => void;
 }
 
-function Pill({ label, onPress, primary }: { label: string; onPress: () => void; primary?: boolean }) {
+function Pill({
+  label,
+  onPress,
+  primary,
+}: {
+  label: string;
+  onPress: () => void;
+  primary?: boolean;
+}) {
   const { colors } = useTheme();
   return (
     <Pressable
@@ -36,8 +44,7 @@ export function RecommendationRow({ item, onOpen, onAdd, onDismiss, onNudge }: P
   const { rec, direction, other, unseen, inMyList } = item;
   const name = other?.username ? `@${other.username}` : 'Un ami';
   const kind = rec.media.media_type === 'tv' ? 'Série' : 'Film';
-  const subtitle =
-    direction === 'received' ? `↙ De ${name} · ${kind}` : `↗ À ${name} · ${kind}`;
+  const subtitle = direction === 'received' ? `↙ De ${name} · ${kind}` : `↗ À ${name} · ${kind}`;
   const blocked = nudgeBlock(rec, Date.now());
 
   return (

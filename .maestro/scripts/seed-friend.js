@@ -13,7 +13,8 @@ function call(method, path, token, body) {
     },
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (!response.ok) throw new Error(method + ' ' + path + ' -> ' + response.status + ' ' + response.body);
+  if (!response.ok)
+    throw new Error(method + ' ' + path + ' -> ' + response.status + ' ' + response.body);
   return json(response.body);
 }
 
@@ -30,8 +31,16 @@ const token = signup.access_token;
 const id = signup.user.id;
 
 call('PATCH', '/rest/v1/profiles?id=eq.' + id, token, { username: name });
-const media = call('POST', '/rest/v1/media', token, { tmdb_id: 900000 + (Date.now() % 90000), media_type: 'tv', title: title });
-call('POST', '/rest/v1/watch_entries', token, { user_id: id, media_id: media[0].id, status: 'watching' });
+const media = call('POST', '/rest/v1/media', token, {
+  tmdb_id: 900000 + (Date.now() % 90000),
+  media_type: 'tv',
+  title: title,
+});
+call('POST', '/rest/v1/watch_entries', token, {
+  user_id: id,
+  media_id: media[0].id,
+  status: 'watching',
+});
 
 output.friendName = name;
 output.friendId = id;

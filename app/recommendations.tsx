@@ -15,7 +15,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmptyState } from '@/components/EmptyState';
 import { Toast, type ToastState } from '@/components/Toast';
 import { useTheme } from '@/contexts/ThemeContext';
-import { filterFeed, type FeedFilter, type RecommendationItem } from '@/features/recommendations/feed';
+import {
+  filterFeed,
+  type FeedFilter,
+  type RecommendationItem,
+} from '@/features/recommendations/feed';
 import { NudgeSheet } from '@/features/recommendations/NudgeSheet';
 import { RecommendationRow } from '@/features/recommendations/RecommendationRow';
 import { useRecommendationMutations } from '@/features/recommendations/useRecommendationMutations';

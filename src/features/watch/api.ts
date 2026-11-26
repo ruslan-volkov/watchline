@@ -27,19 +27,17 @@ export async function fetchEntries(userId: string): Promise<EntryWithMedia[]> {
  * UPDATE policy (it's a cache), so an on-conflict UPDATE would be blocked by RLS.
  */
 export async function ensureMedia(summary: MediaSummary): Promise<MediaRow> {
-  const { error: insertError } = await supabase
-    .from('media')
-    .upsert(
-      {
-        tmdb_id: summary.tmdbId,
-        media_type: summary.mediaType,
-        title: summary.title,
-        poster_path: summary.posterPath,
-        backdrop_path: summary.backdropPath ?? null,
-        release_date: summary.releaseDate,
-      },
-      { onConflict: 'tmdb_id,media_type', ignoreDuplicates: true },
-    );
+  const { error: insertError } = await supabase.from('media').upsert(
+    {
+      tmdb_id: summary.tmdbId,
+      media_type: summary.mediaType,
+      title: summary.title,
+      poster_path: summary.posterPath,
+      backdrop_path: summary.backdropPath ?? null,
+      release_date: summary.releaseDate,
+    },
+    { onConflict: 'tmdb_id,media_type', ignoreDuplicates: true },
+  );
   if (insertError) throw insertError;
 
   const { data, error } = await supabase

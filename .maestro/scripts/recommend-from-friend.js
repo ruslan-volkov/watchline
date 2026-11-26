@@ -11,13 +11,20 @@ function call(method, path, body) {
     },
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (!response.ok) throw new Error(method + ' ' + path + ' -> ' + response.status + ' ' + response.body);
+  if (!response.ok)
+    throw new Error(method + ' ' + path + ' -> ' + response.status + ' ' + response.body);
   return json(response.body);
 }
 
 // The app user is the requester of the friend's only friendship.
-const links = call('GET', '/rest/v1/friendships?friend_id=eq.' + output.friendId + '&select=user_id');
-const entries = call('GET', '/rest/v1/watch_entries?user_id=eq.' + output.friendId + '&select=media_id');
+const links = call(
+  'GET',
+  '/rest/v1/friendships?friend_id=eq.' + output.friendId + '&select=user_id',
+);
+const entries = call(
+  'GET',
+  '/rest/v1/watch_entries?user_id=eq.' + output.friendId + '&select=media_id',
+);
 
 call('POST', '/functions/v1/recommend-media', {
   mediaId: entries[0].media_id,

@@ -54,7 +54,9 @@ export function PosterPlaceholder({
         style,
       ]}
     >
-      <Text style={[styles.initial, { color: posterTextColor(seed, scheme), fontSize: width * 0.4 }]}>
+      <Text
+        style={[styles.initial, { color: posterTextColor(seed, scheme), fontSize: width * 0.4 }]}
+      >
         {initial}
       </Text>
     </View>

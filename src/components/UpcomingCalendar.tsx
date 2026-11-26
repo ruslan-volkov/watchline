@@ -80,7 +80,10 @@ export function UpcomingCalendar({
       return;
     }
     onBeforeJump?.();
-    scrollRef.current.scrollTo({ y: Math.max(0, rootY.current + monthY.current - 12), animated: false });
+    scrollRef.current.scrollTo({
+      y: Math.max(0, rootY.current + monthY.current - 12),
+      animated: false,
+    });
     jumped.current = true;
   };
 
@@ -120,8 +123,7 @@ export function UpcomingCalendar({
   const now = new Date();
   const nowKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   // Current month if present, else the first upcoming one, else the latest.
-  const targetKey =
-    months.find((m) => m.key >= nowKey)?.key ?? months[months.length - 1]?.key;
+  const targetKey = months.find((m) => m.key >= nowKey)?.key ?? months[months.length - 1]?.key;
 
   const availWidth = Dimensions.get('window').width - screenPadding * 2;
   const posterW = (availWidth - GAP * (columns - 1)) / columns;
@@ -157,7 +159,12 @@ export function UpcomingCalendar({
                     onPress={() => onOpen(it.tmdbId, it.mediaType)}
                     accessibilityRole="button"
                   >
-                    <PosterPlaceholder seed={it.seed} title={it.title} posterPath={it.posterPath} width={46} />
+                    <PosterPlaceholder
+                      seed={it.seed}
+                      title={it.title}
+                      posterPath={it.posterPath}
+                      width={46}
+                    />
                     <View style={styles.listText}>
                       <Text numberOfLines={1} style={[styles.title, { color: colors.textPrimary }]}>
                         {it.title}
@@ -175,17 +182,28 @@ export function UpcomingCalendar({
                     accessibilityRole="button"
                   >
                     <View>
-                      <PosterPlaceholder seed={it.seed} title={it.title} posterPath={it.posterPath} width={posterW} />
+                      <PosterPlaceholder
+                        seed={it.seed}
+                        title={it.title}
+                        posterPath={it.posterPath}
+                        width={posterW}
+                      />
                       <View style={[styles.datePill, { backgroundColor: colors.overlay }]}>
                         <Text style={styles.datePillText}>{dayMonthLabel(it.date)}</Text>
                       </View>
                     </View>
                     {columns <= 3 ? (
                       <>
-                        <Text numberOfLines={1} style={[styles.gridTitle, { color: colors.textPrimary }]}>
+                        <Text
+                          numberOfLines={1}
+                          style={[styles.gridTitle, { color: colors.textPrimary }]}
+                        >
                           {it.title}
                         </Text>
-                        <Text numberOfLines={1} style={[styles.gridSub, { color: colors.textMeta }]}>
+                        <Text
+                          numberOfLines={1}
+                          style={[styles.gridSub, { color: colors.textMeta }]}
+                        >
                           {it.subtitle}
                         </Text>
                       </>

@@ -75,7 +75,10 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
     void setAnalyticsEnabled(next);
   }, []);
 
-  const value = useMemo<AnalyticsContextValue>(() => ({ enabled, setEnabled }), [enabled, setEnabled]);
+  const value = useMemo<AnalyticsContextValue>(
+    () => ({ enabled, setEnabled }),
+    [enabled, setEnabled],
+  );
 
   return <AnalyticsContext.Provider value={value}>{children}</AnalyticsContext.Provider>;
 }

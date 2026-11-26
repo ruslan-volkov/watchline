@@ -12,12 +12,19 @@ describe('stateFromQueueItem', () => {
   });
 
   it('calls a waiting download queued', () => {
-    expect(stateFromQueueItem({ status: 'queued', size: 1000, sizeleft: 1000 })).toEqual({ kind: 'queued' });
-    expect(stateFromQueueItem({ status: 'paused', size: 1000, sizeleft: 1000 })).toEqual({ kind: 'queued' });
+    expect(stateFromQueueItem({ status: 'queued', size: 1000, sizeleft: 1000 })).toEqual({
+      kind: 'queued',
+    });
+    expect(stateFromQueueItem({ status: 'paused', size: 1000, sizeleft: 1000 })).toEqual({
+      kind: 'queued',
+    });
   });
 
   it('does not divide by a missing size', () => {
-    expect(stateFromQueueItem({ status: 'downloading' })).toEqual({ kind: 'downloading', progress: 0 });
+    expect(stateFromQueueItem({ status: 'downloading' })).toEqual({
+      kind: 'downloading',
+      progress: 0,
+    });
   });
 });
 
@@ -31,7 +38,11 @@ describe('aggregateState', () => {
   });
 
   it('reports a part on the NAS as partial', () => {
-    expect(aggregateState([downloaded, none, none])).toEqual({ kind: 'partial', done: 1, total: 3 });
+    expect(aggregateState([downloaded, none, none])).toEqual({
+      kind: 'partial',
+      done: 1,
+      total: 3,
+    });
   });
 
   it('averages the progress of what is downloading', () => {
