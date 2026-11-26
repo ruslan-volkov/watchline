@@ -49,10 +49,7 @@ export function DownloadIcon({ state, disabled, onPress, onLongPress }: Handlers
 }
 
 /** Full-width row for a movie or a series: icon, state, tap to request. */
-export function DownloadRow({
-  idleLabel,
-  ...handlers
-}: Handlers & { idleLabel: string }) {
+export function DownloadRow({ idleLabel, ...handlers }: Handlers & { idleLabel: string }) {
   const { colors } = useTheme();
   const { icon, color } = useStateLook(handlers.state);
   return (

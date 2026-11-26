@@ -68,7 +68,11 @@ export default function Friends() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textSecondary} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.textSecondary}
+          />
         }
       >
         {searching ? (
@@ -107,7 +111,9 @@ export default function Friends() {
                         style={[styles.action, { backgroundColor: colors.accent }]}
                         accessibilityRole="button"
                       >
-                        <Text style={[styles.actionText, { color: colors.accentText }]}>Ajouter</Text>
+                        <Text style={[styles.actionText, { color: colors.accentText }]}>
+                          Ajouter
+                        </Text>
                       </Pressable>
                     )}
                   </View>
@@ -127,7 +133,11 @@ export default function Friends() {
                       onPress={() => openProfile(f.user_id, f.requester?.username)}
                       accessibilityRole="button"
                     >
-                      <Avatar name={f.requester?.username} avatarUrl={f.requester?.avatar_url} seed={f.user_id} />
+                      <Avatar
+                        name={f.requester?.username}
+                        avatarUrl={f.requester?.avatar_url}
+                        seed={f.user_id}
+                      />
                       <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>
                         {f.requester?.username ?? 'Utilisateur'}
                       </Text>
@@ -137,9 +147,15 @@ export default function Friends() {
                       style={[styles.action, { backgroundColor: colors.accent }]}
                       accessibilityRole="button"
                     >
-                      <Text style={[styles.actionText, { color: colors.accentText }]}>Accepter</Text>
+                      <Text style={[styles.actionText, { color: colors.accentText }]}>
+                        Accepter
+                      </Text>
                     </Pressable>
-                    <Pressable onPress={() => remove.mutate(f.id)} hitSlop={8} style={styles.decline}>
+                    <Pressable
+                      onPress={() => remove.mutate(f.id)}
+                      hitSlop={8}
+                      style={styles.decline}
+                    >
                       <Ionicons name="close" size={20} color={colors.textMeta} />
                     </Pressable>
                   </View>
@@ -168,12 +184,22 @@ export default function Friends() {
                       }
                       accessibilityRole="button"
                     >
-                      <Avatar name={profile?.username} avatarUrl={profile?.avatar_url} seed={profile?.id} />
+                      <Avatar
+                        name={profile?.username}
+                        avatarUrl={profile?.avatar_url}
+                        seed={profile?.id}
+                      />
                       <View style={{ flex: 1 }}>
-                        <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>
+                        <Text
+                          style={[styles.name, { color: colors.textPrimary }]}
+                          numberOfLines={1}
+                        >
                           {profile?.username ?? 'Utilisateur'}
                         </Text>
-                        <Text style={[styles.activity, { color: colors.textSecondary }]} numberOfLines={1}>
+                        <Text
+                          style={[styles.activity, { color: colors.textSecondary }]}
+                          numberOfLines={1}
+                        >
                           {activityLine(activity?.title ?? null, profile)}
                         </Text>
                       </View>
@@ -196,13 +222,21 @@ export default function Friends() {
                       onPress={() => openProfile(f.friend_id, f.addressee?.username)}
                       accessibilityRole="button"
                     >
-                      <Avatar name={f.addressee?.username} avatarUrl={f.addressee?.avatar_url} seed={f.friend_id} />
+                      <Avatar
+                        name={f.addressee?.username}
+                        avatarUrl={f.addressee?.avatar_url}
+                        seed={f.friend_id}
+                      />
                       <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>
                         {f.addressee?.username ?? 'Utilisateur'}
                       </Text>
                     </Pressable>
                     <Text style={[styles.badge, { color: colors.textMeta }]}>En attente</Text>
-                    <Pressable onPress={() => remove.mutate(f.id)} hitSlop={8} style={styles.decline}>
+                    <Pressable
+                      onPress={() => remove.mutate(f.id)}
+                      hitSlop={8}
+                      style={styles.decline}
+                    >
                       <Ionicons name="close" size={20} color={colors.textMeta} />
                     </Pressable>
                   </View>

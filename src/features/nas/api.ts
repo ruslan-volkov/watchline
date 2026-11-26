@@ -110,7 +110,8 @@ export async function fetchRootFolders(target: Target): Promise<RootFolder[]> {
 export function describeArrError(error: unknown, service: ArrService): string {
   const label = serviceLabels[service];
   // Not ours, so the keychain or storage refused the write.
-  if (!(error instanceof ArrError)) return 'Impossible d’enregistrer la configuration sur cet appareil.';
+  if (!(error instanceof ArrError))
+    return 'Impossible d’enregistrer la configuration sur cet appareil.';
   switch (error.kind) {
     case 'unreachable':
       return `${label} ne répond pas. Vérifie l’adresse, que le NAS est allumé et que tu es sur le bon réseau.`;

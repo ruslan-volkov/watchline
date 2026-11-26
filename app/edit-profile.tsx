@@ -83,8 +83,15 @@ export default function EditProfile() {
         <View style={styles.content}>
           <View style={styles.avatar}>
             <Pressable onPress={changePhoto} disabled={uploading} accessibilityRole="button">
-              <Avatar name={trimmed || profile?.username} avatarUrl={avatarUrl} seed={profile?.id} size={84} />
-              <View style={[styles.camera, { backgroundColor: colors.accent, borderColor: colors.bg }]}>
+              <Avatar
+                name={trimmed || profile?.username}
+                avatarUrl={avatarUrl}
+                seed={profile?.id}
+                size={84}
+              />
+              <View
+                style={[styles.camera, { backgroundColor: colors.accent, borderColor: colors.bg }]}
+              >
                 {uploading ? (
                   <ActivityIndicator size="small" color={colors.accentText} />
                 ) : (
@@ -145,4 +152,3 @@ const styles = StyleSheet.create({
   },
   changePhoto: { fontSize: 14, fontWeight: '600', marginTop: 10 },
 });
-

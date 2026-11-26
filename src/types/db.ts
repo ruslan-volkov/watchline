@@ -154,6 +154,7 @@ export type Database = {
           friend_requests_enabled: boolean
           digest_time: string
           id: string
+          recommendations_enabled: boolean
           theme_preference: Database["public"]["Enums"]["theme_pref"]
           timezone: string
           username: string | null
@@ -167,6 +168,7 @@ export type Database = {
           friend_requests_enabled?: boolean
           digest_time?: string
           id: string
+          recommendations_enabled?: boolean
           theme_preference?: Database["public"]["Enums"]["theme_pref"]
           timezone?: string
           username?: string | null
@@ -180,6 +182,7 @@ export type Database = {
           friend_requests_enabled?: boolean
           digest_time?: string
           id?: string
+          recommendations_enabled?: boolean
           theme_preference?: Database["public"]["Enums"]["theme_pref"]
           timezone?: string
           username?: string | null
@@ -212,6 +215,100 @@ export type Database = {
           {
             foreignKeyName: "push_tokens_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recommendation_inbox: {
+        Row: {
+          dismissed_at: string | null
+          recipient_id: string
+          recommendation_id: string
+          seen_at: string | null
+        }
+        Insert: {
+          dismissed_at?: string | null
+          recipient_id: string
+          recommendation_id: string
+          seen_at?: string | null
+        }
+        Update: {
+          dismissed_at?: string | null
+          recipient_id?: string
+          recommendation_id?: string
+          seen_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recommendation_inbox_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recommendation_inbox_recommendation_id_fkey"
+            columns: ["recommendation_id"]
+            isOneToOne: true
+            referencedRelation: "recommendations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recommendations: {
+        Row: {
+          added_at: string | null
+          created_at: string
+          id: string
+          last_nudged_at: string | null
+          media_id: string
+          message: string | null
+          nudge_count: number
+          recipient_id: string
+          sender_id: string
+        }
+        Insert: {
+          added_at?: string | null
+          created_at?: string
+          id?: string
+          last_nudged_at?: string | null
+          media_id: string
+          message?: string | null
+          nudge_count?: number
+          recipient_id: string
+          sender_id: string
+        }
+        Update: {
+          added_at?: string | null
+          created_at?: string
+          id?: string
+          last_nudged_at?: string | null
+          media_id?: string
+          message?: string | null
+          nudge_count?: number
+          recipient_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recommendations_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recommendations_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recommendations_sender_id_fkey"
+            columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

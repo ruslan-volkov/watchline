@@ -17,9 +17,10 @@ Supabase et Expo).
 sur le projet cloud, à la main. Impossible de repartir de zéro sans toucher la prod.
 
 **À faire**
+
 - `supabase init` puis `supabase start` (Postgres + Auth + Storage en local, via Docker).
-- `supabase db reset` : vérifier que les 9 migrations rejouent *dans l'ordre, à vide,
-  sans erreur*. C'est loin d'être garanti — une migration écrite contre une base
+- `supabase db reset` : vérifier que les 9 migrations rejouent _dans l'ordre, à vide,
+  sans erreur_. C'est loin d'être garanti — une migration écrite contre une base
   vivante casse souvent à froid.
 - `supabase functions serve daily-digest` et l'appeler avec `curl` + le header
   `x-cron-secret`.
@@ -57,7 +58,7 @@ Livré : `supabase/config.toml` (`project_id`, `verify_jwt = false` pour la fonc
 `supabase/migrations/0010_api_grants.sql`, `scripts/use-local-backend.sh`, et la
 section « Développement local » du README.
 
-**Concept** — *Dev/prod parity* et reproductibilité. Un déploiement n'est fiable que si
+**Concept** — _Dev/prod parity_ et reproductibilité. Un déploiement n'est fiable que si
 l'environnement est jetable et recréable par une commande. C'est le prérequis de tout
 le reste : sans ça, tu ne peux ni tester un pipeline ni répéter un rollback.
 
@@ -78,8 +79,9 @@ secret public. C'est le pire des deux mondes — une défaillance silencieuse qu
 l'accès.
 
 **À faire**
+
 - Supprimer le fallback ; lever une erreur au chargement du module si `CRON_SECRET`
-  est absent (*fail fast*, pas à la première requête).
+  est absent (_fail fast_, pas à la première requête).
 - Rotation : générer un nouveau secret, le pousser (`supabase secrets set`), mettre à
   jour le job cron, vérifier que l'ancien est refusé. Mesurer la fenêtre d'indisponibilité.
 - Comparer la vérification du secret à une comparaison en temps constant — et décider
@@ -94,22 +96,22 @@ production attend ton accord (elle touche le projet cloud).
 
 Le portail, avant et après, mesuré sur la stack locale :
 
-| Requête | Avant | Après |
-| --- | --- | --- |
-| sans en-tête | 401 | 500 |
-| mauvais secret | 401 | 500 |
-| bon secret | 200 | 500 |
-| secret du dépôt | **200** | 500 |
+| Requête         | Avant   | Après |
+| --------------- | ------- | ----- |
+| sans en-tête    | 401     | 500   |
+| mauvais secret  | 401     | 500   |
+| bon secret      | 200     | 500   |
+| secret du dépôt | **200** | 500   |
 
 La colonne « après » est prise avec `CRON_SECRET` retiré de l'environnement : plus
 aucune requête ne passe, et le log dit pourquoi en une ligne. C'est la ligne
 `secret du dépôt → 200` qui était le vrai défaut.
 
 1. **« Fail fast » ne veut pas dire « le déploiement échoue ».** Le `throw` est au
-   chargement du module, mais l'edge runtime instancie le worker *à la première
-   requête* : le déploiement réussit, et on ne découvre la panne qu'au déclenchement
+   chargement du module, mais l'edge runtime instancie le worker _à la première
+   requête_ : le déploiement réussit, et on ne découvre la panne qu'au déclenchement
    du cron. Fail-closed, oui ; fail-early, non. Une configuration manquante reste donc
-   invisible jusqu'à 08:00 UTC — c'est l'argument d'un *dead man's switch* au palier 7.
+   invisible jusqu'à 08:00 UTC — c'est l'argument d'un _dead man's switch_ au palier 7.
 2. **Un secret dans l'historique se propage.** Le scan n'a pas trouvé que le commit
    d'origine (`40bd381`) : mon propre commit de palier 0 l'avait recopié dans ce
    fichier en citant la ligne fautive. Deux emplacements pour une seule fuite. Le
@@ -136,20 +138,20 @@ gardent `verify_jwt`, dérivent l'identité du JWT de l'appelant et n'ont pas ce
 
 **Rotation tentée en production le 2026-10-30, annulée volontairement.** Déroulé :
 
-| t (UTC) | Événement |
-| --- | --- |
-| 19:02 | relevé de l'état réel du projet cloud |
-| 19:05:41 | `supabase secrets set CRON_SECRET` → nouveau secret sur la fonction |
+| t (UTC)     | Événement                                                                    |
+| ----------- | ---------------------------------------------------------------------------- |
+| 19:02       | relevé de l'état réel du projet cloud                                        |
+| 19:05:41    | `supabase secrets set CRON_SECRET` → nouveau secret sur la fonction          |
 | 19:05–19:07 | **fenêtre ouverte** : la fonction attend le nouveau, le cron envoie l'ancien |
-| 19:07:30 | retour arrière, ancien secret remis |
-| 19:08 | sonde : HTTP 200, service rétabli |
+| 19:07:30    | retour arrière, ancien secret remis                                          |
+| 19:08       | sonde : HTTP 200, service rétabli                                            |
 
 **Fenêtre : 109 s.** Le cron (prochain tir 20:00) n'a jamais été déclenché dedans :
 zéro digest manqué. Mais ce chiffre ne mesure pas la plateforme — il mesure mon temps
 de réaction entre deux commandes. La propagation réelle de `secrets set` vers le worker
 n'a pas pu être chronométrée, la sonde répétée vers la production ayant été refusée.
 
-5. **Le secret de production *était* le littéral du dépôt.** Les deux sha256 coïncident.
+5. **Le secret de production _était_ le littéral du dépôt.** Les deux sha256 coïncident.
    Ce n'était donc pas une hypothèse : la valeur présente dans `40bd381` est celle qui
    gardait la fonction. (Au passage, `supabase secrets list` publie le sha256 de chaque
    valeur — de quoi confirmer un secret deviné, sans le révéler.)
@@ -161,7 +163,7 @@ n'a pas pu être chronométrée, la sonde répétée vers la production ayant é
    aurait créé une planification différente de la production, en silence. Corrigé.
 7. **La duplication n'est pas qu'une fenêtre, c'est un mur d'automatisation.** Les deux
    côtés ne se manipulent pas de la même façon : la variable d'env de la fonction se met
-   à jour *depuis un fichier*, sans que personne ne lise la valeur ; le SQL du job cron,
+   à jour _depuis un fichier_, sans que personne ne lise la valeur ; le SQL du job cron,
    lui, exige d'écrire le secret en clair dans la commande. C'est ce qui a arrêté la
    rotation — pas un obstacle technique, une conséquence du choix de conception. Tant que
    le secret est porté en dur par le cron, la rotation ne peut pas être automatisée du
@@ -174,7 +176,7 @@ un seul système, sans fenêtre et automatisable. À faire au palier 2, dont c'e
 
 Reste à faire : la rotation elle-même, une fois le cron découplé du secret.
 
-**Concept** — *Fail closed, fail fast* et rotation de secrets. Une config absente doit
+**Concept** — _Fail closed, fail fast_ et rotation de secrets. Une config absente doit
 provoquer une panne bruyante au démarrage, jamais une dégradation silencieuse de la
 sécurité. Vrai partout : variables d'env, feature flags, certificats.
 
@@ -188,10 +190,11 @@ Le job qui tourne en production n'existe dans aucun fichier. Si le projet Supaba
 perdu, cette planification est perdue — et personne ne peut savoir, en lisant le repo,
 à quelle heure le digest part ni vers quelle URL.
 
-C'est le cas d'école de la *dérive de configuration* (configuration drift) : l'état réel
+C'est le cas d'école de la _dérive de configuration_ (configuration drift) : l'état réel
 du système n'est plus décrit par le code.
 
 **À faire**
+
 - Rendre la planification déclarative. Le blocage est réel — le SQL embarque le secret.
   Deux voies, explore les deux :
   1. **Supabase Vault** : stocker le secret dans `vault.secrets`, et écrire une migration
@@ -210,25 +213,25 @@ la seule exécution de ce qui est versionné. Aucune étape manuelle au tableau 
 
 **🟡 Fait en local le 2026-10-30, pas appliqué en production.**
 
-Livré : `supabase/migrations/0015_digest_schedule.sql` déclare le job, qui lit son
-secret *et* son URL de base dans Vault au moment de l'appel — sa commande ne contient
+Livré : `supabase/migrations/0018_digest_schedule.sql` déclare le job, qui lit son
+secret _et_ son URL de base dans Vault au moment de l'appel — sa commande ne contient
 donc ni l'un ni l'autre et devient committable. `supabase/seed.sql` (jamais appliqué à
 un projet déployé) pose les deux valeurs pour le local et y désactive le job.
 
 Vérifié par rejeu à froid, 14 migrations sur base vide :
 
-| Contrôle | Résultat |
-| --- | --- |
-| jobs après rejeu | 1, `0 * * * *` |
-| secret dans `cron.job.command` | aucun |
-| migration rejouée 3× | 1 job, même `jobid` |
-| commande stockée exécutée telle quelle | **HTTP 200** |
-| `project_url` manquante | violation NOT NULL, erreur tracée |
+| Contrôle                               | Résultat                          |
+| -------------------------------------- | --------------------------------- |
+| jobs après rejeu                       | 1, `0 * * * *`                    |
+| secret dans `cron.job.command`         | aucun                             |
+| migration rejouée 3×                   | 1 job, même `jobid`               |
+| commande stockée exécutée telle quelle | **HTTP 200**                      |
+| `project_url` manquante                | violation NOT NULL, erreur tracée |
 
 1. **`cron.schedule` est un upsert**, pas une erreur — depuis pg_cron 1.4, vérifié en
    1.6.4. Ce que j'annonçais dans ce fichier était faux. Le vrai piège d'idempotence est
    ailleurs : **dans le seed**. Une migration qui génère un secret « s'il est absent »
-   casse en silence un projet existant, où il *est* absent de Vault — le job se mettrait
+   casse en silence un projet existant, où il _est_ absent de Vault — le job se mettrait
    à envoyer une valeur que la fonction déployée ignore. D'où un choix explicite :
    `0015` ne seed rien du tout.
 2. **`supabase db reset` sort en code 0 alors que le seed a échoué.** Mon premier seed
@@ -244,7 +247,7 @@ Vérifié par rejeu à froid, 14 migrations sur base vide :
    secret seul, en revanche, la requête part avec un en-tête nul et reçoit un 401 : visible
    dans `net._http_response`, mais le job est compté comme réussi. L'asymétrie est dans
    pg_net, pas dans notre code.
-5. **Ce que ce palier ne règle pas** : le secret vit toujours dans *deux* systèmes — Vault
+5. **Ce que ce palier ne règle pas** : le secret vit toujours dans _deux_ systèmes — Vault
    et la variable d'env de la fonction. La rotation garde donc sa fenêtre. Ce qui a changé,
    c'est qu'elle ne demande plus d'écrire la valeur dans du SQL : `vault.update_secret`
    d'un côté, `supabase secrets set --env-file` de l'autre, deux gestes automatisables
@@ -253,10 +256,10 @@ Vérifié par rejeu à froid, 14 migrations sur base vide :
    vérification du JWT par la plateforme. À décider, pas à faire ici.
 
 **Pour l'appliquer en production**, il faudra d'abord poser dans Vault le secret que la
-fonction détient *déjà*, sinon le job part avec un en-tête nul dès la migration passée.
-C'est une transition *expand/contract*, comme `0011` l'a fait pour les helpers RLS.
+fonction détient _déjà_, sinon le job part avec un en-tête nul dès la migration passée.
+C'est une transition _expand/contract_, comme `0011` l'a fait pour les helpers RLS.
 
-**Concept** — *Infrastructure as code* et idempotence. Tout état de production créé à la
+**Concept** — _Infrastructure as code_ et idempotence. Tout état de production créé à la
 main est une dette invisible, découverte au pire moment. Et le fait que ce soit un secret
 qui ait poussé l'auteur à sortir du code : c'est la tension centrale de l'IaC, et Vault
 (ou SOPS, ou Sealed Secrets) est la réponse générique.
@@ -270,11 +273,12 @@ le README). Toute migration va directement en production, sur tes vraies donnée
 Il n'existe aucun endroit où se tromper.
 
 **À faire**
+
 - Créer un second projet Supabase, `watchline-staging`. Y appliquer les 9 migrations
   depuis zéro — ça valide le palier 0 pour de vrai.
 - Alternative à évaluer : les **branches Supabase** (branche éphémère par PR, liée au
   dépôt GitHub). Compare le coût et le cycle de vie des deux approches avant de choisir.
-- Côté app, les variables `EXPO_PUBLIC_*` sont figées *au build* (le README l'écrit
+- Côté app, les variables `EXPO_PUBLIC_*` sont figées _au build_ (le README l'écrit
   déjà). Un profil `preview` dans `eas.json` doit donc pointer sur staging, et
   `production` sur la prod — via les **EAS environment variables**
   (`development` / `preview` / `production`), pas via un `.env` local.
@@ -290,11 +294,11 @@ manuel reste à faire.**
 **L'arbitrage se règle sur les chiffres, pas sur les goûts.** Organisation `RuslanCorp`,
 plan **free** :
 
-| | Second projet | Branches Supabase |
-| --- | --- | --- |
-| Coût | **0 $/mois** | 0,01344 $/h, soit ≈ 9,80 $/mois en permanence |
-| Disponible sur le plan free | oui | **non — branching = plan Pro** |
-| Cycle de vie | permanent | éphémère, une par PR |
+|                             | Second projet | Branches Supabase                             |
+| --------------------------- | ------------- | --------------------------------------------- |
+| Coût                        | **0 $/mois**  | 0,01344 $/h, soit ≈ 9,80 $/mois en permanence |
+| Disponible sur le plan free | oui           | **non — branching = plan Pro**                |
+| Cycle de vie                | permanent     | éphémère, une par PR                          |
 
 La comparaison s'effondre d'elle-même : les branches exigent le plan Pro (25 $/mois plus
 le compute). Ce n'est donc pas « moins cher contre plus pratique », c'est « disponible
@@ -315,6 +319,7 @@ modifie aucun comportement. C'est précisément l'intérêt : la correspondance 
 environnement était une règle invisible, elle est maintenant écrite.
 
 Deux réserves honnêtes :
+
 - **La précédence entre le bloc `env` d'un profil et les variables de l'environnement EAS
   n'est documentée nulle part.** Nos profils de dev posent `APP_VARIANT` en `env` ; tant
   qu'aucune clé n'existe des deux côtés, la question ne se pose pas. Ne pas en créer.
@@ -343,11 +348,11 @@ Supabase n'accorde plus le DML sur les nouveaux objets de `public` et que « le 
 est antérieur au changement ». Mesuré sur un projet créé le jour même :
 
 | défaut `postgres` dans `public` | local (CLI 2.109) | cloud (staging neuf **et** prod) |
-| --- | --- | --- |
-| `anon` | `Dxtm` | `arwdDxtm` |
-| `authenticated` | `Dxtm` | `arwdDxtm` |
+| ------------------------------- | ----------------- | -------------------------------- |
+| `anon`                          | `Dxtm`            | `arwdDxtm`                       |
+| `authenticated`                 | `Dxtm`            | `arwdDxtm`                       |
 
-La divergence n'est pas *ancien projet vs nouveau*, c'est **l'image locale de la CLI vs la
+La divergence n'est pas _ancien projet vs nouveau_, c'est **l'image locale de la CLI vs la
 plateforme cloud**. `0010` reste nécessaire — sans lui, le rejeu à froid en local échoue en
 42501 — mais il décrit mal pourquoi. Sans second projet, impossible de le savoir : un seul
 environnement cloud ne permet pas de distinguer « ancien » de « cloud ».
@@ -373,6 +378,7 @@ l'historique contient déjà un secret en clair, le piège était trop beau : la
 devenue `.env*` avec `!.env.example`.
 
 **Ce qui a été vérifié sur staging, pas en local**
+
 - 13 migrations rejouées à froid sans erreur. `supabase_vault` est présent par défaut sur un
   projet neuf ; `pg_cron` et `pg_net` ne le sont pas et sont bien créés par `0004`.
 - Le job existe, actif, `0 * * * *`, et **sa commande ne contient aucun secret**.
@@ -383,7 +389,7 @@ devenue `.env*` avec `!.env.example`.
   Le fail-closed du palier 1 n'était pas un artefact de la machine de dev.
 
 **Parité imparfaite, à savoir** — staging tourne sur Postgres 17.11.0.011, la prod sur
-17.6.1.141. Staging est donc *en avance*, ce qui est le mauvais sens : un comportement qui
+17.6.1.141. Staging est donc _en avance_, ce qui est le mauvais sens : un comportement qui
 passe sur staging peut manquer en prod. On ne choisit pas la version d'un projet Supabase.
 
 **Le pas manuel qui reste, et pourquoi il est manuel.** Le secret doit exister dans deux
@@ -392,8 +398,8 @@ généré par Postgres via `gen_random_bytes` — sa valeur n'est donc jamais pa
 ni par une conversation. Pour le poser côté fonction, il faut le **lire**, et aucun chemin ne
 le permet sans l'exposer : la CLI garde son jeton dans le keychain, et le mot de passe de la
 base de staging est généré à la création puis jamais affiché. C'est le constat du palier 1,
-reproduit sur un environnement neuf : *installer un secret partagé dans deux systèmes exige
-que quelqu'un le lise*. Dans l'éditeur SQL de staging :
+reproduit sur un environnement neuf : _installer un secret partagé dans deux systèmes exige
+que quelqu'un le lise_. Dans l'éditeur SQL de staging :
 
 ```sql
 select decrypted_secret from vault.decrypted_secrets where name = 'digest_cron_secret';
@@ -467,8 +473,8 @@ en lecture seule et révocable depuis le compte TMDB.
 4. Build **`preview`** (qui pointe sur staging) et parcours complet sur appareil.
 5. **Seulement alors**, appliquer les mêmes migrations à la prod, puis build `production`.
 
-La règle tient en une phrase : *une migration n'atteint la prod qu'après être passée par
-staging*. Et pour `0015`, chaque passage demande en plus de poser dans Vault le secret
+La règle tient en une phrase : _une migration n'atteint la prod qu'après être passée par
+staging_. Et pour `0015`, chaque passage demande en plus de poser dans Vault le secret
 que la fonction de cet environnement détient déjà — sans quoi le digest part avec un
 en-tête nul. C'est la transition expand/contract du palier 2, à faire deux fois.
 
@@ -490,11 +496,11 @@ privilèges eux-mêmes plutôt que sur un de leurs symptômes. Elle échouait en
 **Ce que la mesure sur staging a montré, et que le raisonnement avait manqué.** Avant
 `0016`, avec la clé publiable et aucune session :
 
-| table | avant `0016` | pourquoi |
-| --- | --- | --- |
-| `profiles`, `watch_entries`, `episode_progress` | 401 `42501` | `permission denied for function has_friend_link` — c'est la **policy** qui échoue, `0011` n'ayant accordé `EXECUTE` sur les helpers `private` qu'à `authenticated` et `service_role` |
-| `friendships`, `media`, `push_tokens` | **200 `[]`** | atteignables : aucune policy ne s'applique à `anon`, donc une réponse vide bien formée |
-| `INSERT` sur `media` | 401 `42501` | `new row violates row-level security policy` |
+| table                                           | avant `0016` | pourquoi                                                                                                                                                                             |
+| ----------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `profiles`, `watch_entries`, `episode_progress` | 401 `42501`  | `permission denied for function has_friend_link` — c'est la **policy** qui échoue, `0011` n'ayant accordé `EXECUTE` sur les helpers `private` qu'à `authenticated` et `service_role` |
+| `friendships`, `media`, `push_tokens`           | **200 `[]`** | atteignables : aucune policy ne s'applique à `anon`, donc une réponse vide bien formée                                                                                               |
+| `INSERT` sur `media`                            | 401 `42501`  | `new row violates row-level security policy`                                                                                                                                         |
 
 Aucune donnée exposée, donc — mais trois tables atteignables, et la protection des trois
 autres venant d'un `EXECUTE` accordé par une migration qui n'avait rien à voir avec les
@@ -521,10 +527,10 @@ aucun privilège de table en jeu. Sans cette lecture, le revoke était un pari.
 
 Mesuré sur la prod, requêtes anonymes avec la clé publiable :
 
-| tables | avant | après |
-| --- | --- | --- |
-| `friendships`, `media`, `push_tokens`, `nas_webhook_tokens` | **200 `[]`** | 401 `42501` |
-| `profiles`, `watch_entries`, `episode_progress` | 401, via le helper `private` | 401 `42501 permission denied for table` |
+| tables                                                      | avant                        | après                                   |
+| ----------------------------------------------------------- | ---------------------------- | --------------------------------------- |
+| `friendships`, `media`, `push_tokens`, `nas_webhook_tokens` | **200 `[]`**                 | 401 `42501`                             |
+| `profiles`, `watch_entries`, `episode_progress`             | 401, via le helper `private` | 401 `42501 permission denied for table` |
 
 Contrôles après coup : `authenticated` garde `SELECT` sur `profiles`, `UPDATE` sur
 `watch_entries` et `EXECUTE` sur les deux helpers `private` ; `service_role` garde `SELECT`
@@ -608,7 +614,7 @@ trop serré sur la sortie suffit à confondre les deux. Avec un cast explicite, 
 comme attendu : `r:MAINTAIN r:REFERENCES r:TRIGGER r:TRUNCATE S:UPDATE`.
 
 **Et l'assertion de catalogue ne suffisait pas.** `pg_default_acl` n'enregistre que les
-droits accordés *nommément* à un rôle : il ne voit pas ce qu'`anon` détient via PUBLIC. J'ai
+droits accordés _nommément_ à un rôle : il ne voit pas ce qu'`anon` détient via PUBLIC. J'ai
 donc ajouté une assertion comportementale — le test crée une table dans sa propre transaction
 et vérifie qu'`anon` n'y a rien, sans que personne n'ait révoqué. C'est celle-là qui prouve
 que `0017` travaille.
@@ -636,7 +642,44 @@ droit pour faire coïncider deux états.
 
 **`0017` n'est pas appliqué en production.**
 
-**Concept** — *Environment promotion*. Un artefact (ou une migration) progresse par
+### Deuxième merge avec `master` : la collision revient, et quelqu'un d'autre trouve le même trou
+
+La prédiction du premier merge s'est vérifiée : `master` porte bien un `0014_recommendations`,
+mais il porte aussi un `0015_recommendations_revoke_default_grants`. Mon
+`0015_digest_schedule` est donc entré en collision **une deuxième fois**, et comme la
+première, git a fusionné sans un mot : les noms de fichiers diffèrent, seul le préfixe
+numérique compte pour `schema_migrations`. Renuméroté en `0018`.
+
+Deux fois en deux merges, ce n'est plus un accident, c'est la convention. **Une numérotation
+séquentielle tenue à la main ne survit pas aux branches parallèles**, et le coût ne se paie
+pas au merge — il se paie au `db reset` suivant, loin du geste qui l'a causé. La décision de
+basculer sur les horodatages de `supabase migration new` reste à prendre, et le palier 4 en
+dépend : on ne peut pas écrire un job qui applique les migrations tant que leur identité
+n'est pas stable.
+
+**Plus instructif : `master` a rencontré le même trou de privilèges, et l'a bouché
+autrement.** Son `0015` révoque tout sur les deux tables de recommandations _avant_ de
+réaccorder, avec ce constat en commentaire : « une migration qui crée une table doit révoquer
+avant d'accorder » — et la remarque que les bases locales et de CI n'ont jamais eu ces
+défauts, donc qu'aucun test ne peut attraper ça. Deux sessions, le même défaut du cloud, deux
+réponses :
+
+- **une règle à se rappeler** à chaque migration qui crée une table (`master`) ;
+- **un défaut changé une fois pour toutes** (`0017` ici).
+
+Les deux sont justes, et elles ne se marchent pas sur les pieds : après `0017`, le
+`revoke … from anon` de `master` devient un no-op, et le reste de sa migration continue de
+porter `authenticated` et `service_role`. Mais la comparaison tranche la question ouverte
+plus haut : `0017` ne couvre qu'`anon`, donc la règle reste à se rappeler pour
+`authenticated` — et c'est exactement l'oubli qu'un humain fait. L'étendre reste un
+arbitrage plus large, parce que ça gouvernerait aussi les tables créées depuis le tableau de
+bord.
+
+**Dérive, mise à jour.** Le dépôt porte 18 migrations ; staging en a 16 (il lui manque les
+deux de recommandations), la prod 14. Rien ne rattrape ça tout seul — c'est le palier 4, et
+l'écart grandit à chaque merge pendant qu'on en parle.
+
+**Concept** — _Environment promotion_. Un artefact (ou une migration) progresse par
 paliers identiques ; il n'est jamais rebâti différemment pour la prod. Corollaire sur
 mobile : la config est injectée au build, donc « le même artefact partout » n'est pas
 tenable tel quel — tu découvres pourquoi le mobile complique la livraison continue.
@@ -645,11 +688,13 @@ tenable tel quel — tu découvres pourquoi le mobile complique la livraison con
 
 ## Palier 4 — Le pipeline déploie
 
-**État actuel** — `.github/workflows/ci.yml` fait `tsc --noEmit` et `jest --ci`. Rien
-d'autre. Pas de lint. Aucune migration appliquée, aucune fonction déployée, aucun build
-déclenché. Tout le déploiement est manuel.
+**État actuel** — `.github/workflows/ci.yml` fait `biome ci`, un typecheck et `jest --ci`,
+plus un job pgTAP sur une stack locale ; `master` y a ajouté le lint et un hook pre-commit
+(`lefthook.yml`) depuis. Mais aucune migration appliquée, aucune fonction déployée, aucun
+build déclenché. Tout le déploiement est manuel.
 
 **À faire**
+
 - Étendre la CI : un job `deploy-staging` sur `master` qui enchaîne
   `supabase db push` puis `supabase functions deploy daily-digest`, avec
   `SUPABASE_ACCESS_TOKEN` en secret GitHub et le project ref de **staging**.
@@ -664,9 +709,9 @@ déclenché. Tout le déploiement est manuel.
 **Réussi quand** — Un merge sur `master` met staging à jour tout seul, et la prod attend
 une approbation explicite.
 
-**Concept** — *Pipeline de livraison* et compatibilité de schéma. Le point dur n'est pas
+**Concept** — _Pipeline de livraison_ et compatibilité de schéma. Le point dur n'est pas
 d'automatiser les commandes, c'est l'ordonnancement : pendant un déploiement, ancien code
-et nouveau schéma coexistent. Le motif *expand/contract* est la réponse, et il est
+et nouveau schéma coexistent. Le motif _expand/contract_ est la réponse, et il est
 universel — Postgres, MySQL, ou un champ protobuf.
 
 ---
@@ -678,6 +723,7 @@ production, avec `autoIncrement` et l'auto-submit vers TestFlight). Mais chaque 
 est lancé à la main, depuis ta machine. Il n'y a pas de `.eas/workflows/`.
 
 **À faire**
+
 - Créer `.eas/workflows/production.yml` (`eas workflow:create --template build` pour
   partir d'un squelette). La structure réelle :
 
@@ -686,7 +732,7 @@ name: Production release
 
 on:
   push:
-    branches: ['master']
+    branches: ["master"]
 
 jobs:
   build_ios:
@@ -706,14 +752,14 @@ jobs:
   à l'autre. C'est la même mécanique que n'importe quel orchestrateur de pipeline.
 - Lancer sans attendre un push : `eas workflow:run .eas/workflows/production.yml`.
 - Explorer `type: fingerprint` : il détecte si la couche native a changé, donc s'il faut
-  un vrai build ou si une mise à jour OTA suffit. C'est de la *détection de changement*
+  un vrai build ou si une mise à jour OTA suffit. C'est de la _détection de changement_
   pour éviter du travail inutile — le même raisonnement qu'un cache de build.
 - À savoir : les workflows planifiés (`on: schedule`) sont réservés aux offres payantes.
 
 **Réussi quand** — Une release part sans que tu tapes une commande de build, et tu sais
 dire quel job a produit quel artefact.
 
-**Concept** — *Pipelines déclaratifs, graphe de dépendances, artefacts*. `needs`,
+**Concept** — _Pipelines déclaratifs, graphe de dépendances, artefacts_. `needs`,
 `outputs`, `if`, la concurrence : c'est le même modèle mental que GitHub Actions, GitLab
 CI, Argo ou Temporal. Ce que tu apprends ici se relit ailleurs.
 
@@ -728,6 +774,7 @@ d'annuler une release : la seule issue est d'en publier une autre.
 C'est le trou le plus grave du projet d'un point de vue exploitation.
 
 **À faire**
+
 - Installer `expo-updates`, configurer les canaux (channels) alignés sur les profils
   `eas.json`.
 - Publier une mise à jour OTA avec un `type: update` dans un workflow, sur un canal de
@@ -744,7 +791,7 @@ C'est le trou le plus grave du projet d'un point de vue exploitation.
 **Réussi quand** — Tu peux annuler une mauvaise release en minutes, et tu connais
 précisément la frontière entre ce qui est corrigeable à chaud et ce qui exige un build.
 
-**Concept** — *Progressive delivery* et MTTR. Déployer, c'est facile ; revenir en arrière
+**Concept** — _Progressive delivery_ et MTTR. Déployer, c'est facile ; revenir en arrière
 vite, c'est le vrai métier. Canari, rollout par pourcentage, kill switch : la question
 n'est jamais « est-ce que ça va casser » mais « en combien de temps je reviens ».
 
@@ -758,13 +805,14 @@ rien de structuré, et rien ne surveille le job cron. Une semaine sans notificat
 passerait inaperçue.
 
 **À faire**
+
 - Journalisation structurée dans `daily-digest` : une ligne JSON par exécution
   (utilisateurs traités, pushs envoyés, échecs, durée). Les requêter dans les logs
   Supabase.
 - Une table `digest_runs` écrite à chaque exécution : c'est ta trace d'audit, et la base
   de l'alerte suivante.
 - Un **dead man's switch** : si aucune exécution réussie depuis 26 h, être prévenu.
-  Noter la différence avec une alerte sur erreur — ici c'est l'*absence* d'événement qui
+  Noter la différence avec une alerte sur erreur — ici c'est l'_absence_ d'événement qui
   est le signal, et c'est toujours le cas le plus difficile.
 - Jouer les scénarios d'échec : révoquer le token TMDB, mettre un mauvais `CRON_SECRET`.
   Est-ce que ton dispositif les détecte ? Combien de temps après ?
@@ -774,7 +822,7 @@ passerait inaperçue.
 **Réussi quand** — Tu es prévenu d'un digest manquant avant de t'en apercevoir par
 l'absence de notification sur ton téléphone.
 
-**Concept** — *Observabilité* : logs, métriques, alertes sur absence de signal. On ne
+**Concept** — _Observabilité_ : logs, métriques, alertes sur absence de signal. On ne
 peut pas exploiter ce qu'on ne voit pas, et les pannes silencieuses des tâches
 planifiées sont la catégorie de bug la plus durablement coûteuse.
 
@@ -803,7 +851,7 @@ répliquées. Watchline est une app perso à un utilisateur : les problèmes d'�
 existent pas et ne peuvent pas être simulés honnêtement. Pour ça il faut un autre terrain.
 
 En revanche, migrations, secrets, environnements, pipelines, rollback et observabilité
-sont *les mêmes problèmes* à toutes les échelles. C'est 80 % du métier, et ce repo les
+sont _les mêmes problèmes_ à toutes les échelles. C'est 80 % du métier, et ce repo les
 contient tous pour de vrai.
 
 ---

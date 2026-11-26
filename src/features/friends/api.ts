@@ -101,7 +101,10 @@ export async function fetchFriendActivity(friendIds: string[]): Promise<FriendAc
 
   const seen = new Set<string>();
   const out: FriendActivity[] = [];
-  for (const row of (data ?? []) as { user_id: string; media: { title: string; tmdb_id: number } | null }[]) {
+  for (const row of (data ?? []) as {
+    user_id: string;
+    media: { title: string; tmdb_id: number } | null;
+  }[]) {
     if (!row.media || seen.has(row.user_id)) continue;
     seen.add(row.user_id);
     out.push({ user_id: row.user_id, title: row.media.title, tmdb_id: row.media.tmdb_id });

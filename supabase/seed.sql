@@ -1,6 +1,6 @@
 -- Loaded by `supabase db reset` / `supabase start` only. It is never applied to a
 -- deployed project, which is why the two environment-specific values the digest
--- schedule reads (0015) are set here rather than in a migration.
+-- schedule reads (0018) are set here rather than in a migration.
 
 -- The database reaches the API gateway over the compose network, so this address does
 -- not depend on which host ports config.toml happens to use.

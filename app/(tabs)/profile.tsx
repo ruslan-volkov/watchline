@@ -14,6 +14,8 @@ import { SERVICES, serviceLabels } from '@/features/nas/config';
 import { useNasConfig } from '@/features/nas/NasConfigContext';
 import { usePushStatus } from '@/features/notifications/PushRegistrationContext';
 import type { PushRegistrationResult } from '@/features/notifications/attempt';
+import { RECOMMENDATIONS_ROUTE } from '@/features/recommendations/feed';
+import { useRecommendations } from '@/features/recommendations/useRecommendations';
 import { useWatchEntries } from '@/features/watch/useWatchEntries';
 import { track } from '@/lib/analytics';
 import { useTabBarClearance } from '@/theme/layout';
@@ -98,6 +100,7 @@ export default function Profile() {
   const { enabled: analyticsEnabled, setEnabled: setAnalyticsEnabled } = useAnalyticsConsent();
   const router = useRouter();
   const { acceptedFriends, incoming } = useFriends();
+  const { unseenCount } = useRecommendations();
   const { data: entries } = useWatchEntries();
   const pushStatus = usePushStatus();
   const pausedCount = (entries ?? []).filter((e) => e.snoozed).length;
@@ -126,7 +129,11 @@ export default function Profile() {
       title={profile?.username ?? 'Profil'}
       padded={false}
       headerRight={
-        <Pressable onPress={() => router.push('/edit-profile')} hitSlop={8} accessibilityRole="button">
+        <Pressable
+          onPress={() => router.push('/edit-profile')}
+          hitSlop={8}
+          accessibilityRole="button"
+        >
           <Text style={{ color: colors.accentInk, fontSize: 15, fontWeight: '600' }}>Modifier</Text>
         </Pressable>
       }
@@ -136,6 +143,28 @@ export default function Profile() {
         showsVerticalScrollIndicator={false}
       >
         <SectionHeader>Amis</SectionHeader>
+        <Pressable
+          onPress={() => router.push(RECOMMENDATIONS_ROUTE)}
+          style={[
+            styles.soon,
+            { backgroundColor: colors.surface, borderColor: colors.border, marginBottom: 10 },
+          ]}
+          accessibilityRole="button"
+        >
+          <Ionicons name="paper-plane-outline" size={22} color={colors.textSecondary} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.soonTitle, { color: colors.textPrimary }]}>Recommandations</Text>
+            <Text style={[styles.soonText, { color: colors.textSecondary }]}>
+              Les titres que tes amis et toi vous conseillez.
+            </Text>
+          </View>
+          {unseenCount > 0 ? (
+            <View style={[styles.badge, { backgroundColor: colors.accent }]}>
+              <Text style={[styles.badgeText, { color: colors.accentText }]}>{unseenCount}</Text>
+            </View>
+          ) : null}
+          <Ionicons name="chevron-forward" size={20} color={colors.textMeta} />
+        </Pressable>
         <Pressable
           onPress={() => router.push('/friends')}
           style={[styles.soon, { backgroundColor: colors.surface, borderColor: colors.border }]}
@@ -154,7 +183,9 @@ export default function Profile() {
           </View>
           {incoming.length > 0 ? (
             <View style={[styles.badge, { backgroundColor: colors.accent }]}>
-              <Text style={[styles.badgeText, { color: colors.accentText }]}>{incoming.length}</Text>
+              <Text style={[styles.badgeText, { color: colors.accentText }]}>
+                {incoming.length}
+              </Text>
             </View>
           ) : null}
           <Ionicons name="chevron-forward" size={20} color={colors.textMeta} />
@@ -253,8 +284,29 @@ export default function Profile() {
           <Switch
             value={profile?.friend_requests_enabled ?? true}
             onValueChange={(v) =>
-              changeSetting('friend_requests', String(v), () =>
-                void updateProfile({ friend_requests_enabled: v }),
+              changeSetting(
+                'friend_requests',
+                String(v),
+                () => void updateProfile({ friend_requests_enabled: v }),
+              )
+            }
+            trackColor={{ true: colors.accent }}
+          />
+        </Row>
+        <Row>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.label, { color: colors.textPrimary }]}>Recommandations</Text>
+            <Text style={[styles.hint, { color: colors.textMeta }]}>
+              Être prévenu quand un ami te conseille un titre ou te relance.
+            </Text>
+          </View>
+          <Switch
+            value={profile?.recommendations_enabled ?? true}
+            onValueChange={(v) =>
+              changeSetting(
+                'recommendations',
+                String(v),
+                () => void updateProfile({ recommendations_enabled: v }),
               )
             }
             trackColor={{ true: colors.accent }}
@@ -270,8 +322,10 @@ export default function Profile() {
           <Switch
             value={profile?.activity_visible ?? true}
             onValueChange={(v) =>
-              changeSetting('activity_visible', String(v), () =>
-                void updateProfile({ activity_visible: v }),
+              changeSetting(
+                'activity_visible',
+                String(v),
+                () => void updateProfile({ activity_visible: v }),
               )
             }
             trackColor={{ true: colors.accent }}

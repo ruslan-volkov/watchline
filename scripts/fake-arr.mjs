@@ -65,14 +65,23 @@ const radarr = async ({ method, path, query, body }) => {
     return [{ id: 0, tmdbId, title: `Film ${tmdbId}` }];
   }
   if (path === '/movie' && method === 'POST') {
-    const movie = { ...body, id: nextId++, hasFile: false, progress: body.addOptions?.searchForMovie ? 0 : null };
+    const movie = {
+      ...body,
+      id: nextId++,
+      hasFile: false,
+      progress: body.addOptions?.searchForMovie ? 0 : null,
+    };
     movies.set(movie.tmdbId, movie);
     return movie;
   }
   if (path === '/movie/editor') {
     for (const id of body.movieIds) {
       const movie = [...movies.values()].find((m) => m.id === id);
-      if (movie) Object.assign(movie, { monitored: body.monitored, ...(body.qualityProfileId && { qualityProfileId: body.qualityProfileId }) });
+      if (movie)
+        Object.assign(movie, {
+          monitored: body.monitored,
+          ...(body.qualityProfileId && { qualityProfileId: body.qualityProfileId }),
+        });
     }
     return undefined;
   }
@@ -106,15 +115,28 @@ const sonarr = async ({ method, path, query, body }) => {
     series.set(created.tvdbId, created);
     setTimeout(() => {
       for (const seasonNumber of SEASONS) {
-        for (let episodeNumber = 1; episodeNumber <= (seasonNumber === 0 ? 1 : EPISODES_PER_SEASON); episodeNumber++) {
-          episodes.push({ id: nextId++, seriesId: created.id, seasonNumber, episodeNumber, monitored: false, hasFile: false, progress: null });
+        for (
+          let episodeNumber = 1;
+          episodeNumber <= (seasonNumber === 0 ? 1 : EPISODES_PER_SEASON);
+          episodeNumber++
+        ) {
+          episodes.push({
+            id: nextId++,
+            seriesId: created.id,
+            seasonNumber,
+            episodeNumber,
+            monitored: false,
+            hasFile: false,
+            progress: null,
+          });
         }
       }
     }, EPISODES_DELAY_MS);
     return created;
   }
   if (path === '/series/editor') return undefined;
-  if (path === '/episode') return episodes.filter((e) => e.seriesId === Number(query.get('seriesId')));
+  if (path === '/episode')
+    return episodes.filter((e) => e.seriesId === Number(query.get('seriesId')));
   if (path === '/episode/monitor') {
     for (const e of episodes) if (body.episodeIds.includes(e.id)) e.monitored = body.monitored;
     return undefined;
@@ -123,7 +145,8 @@ const sonarr = async ({ method, path, query, body }) => {
     const wanted = episodes.filter((e) => {
       if (e.hasFile || !e.monitored) return false;
       if (body.name === 'SeriesSearch') return e.seriesId === body.seriesId;
-      if (body.name === 'SeasonSearch') return e.seriesId === body.seriesId && e.seasonNumber === body.seasonNumber;
+      if (body.name === 'SeasonSearch')
+        return e.seriesId === body.seriesId && e.seasonNumber === body.seasonNumber;
       if (body.name === 'EpisodeSearch') return body.episodeIds.includes(e.id);
       return false;
     });
@@ -146,7 +169,12 @@ function serve(name, port, handler) {
       console.log(`${name} ${req.method} ${path}${url.search}`);
       if (req.headers['x-api-key'] !== API_KEY) return send(res, 401);
       try {
-        const answer = await handler({ method: req.method, path, query: url.searchParams, body: await readBody(req) });
+        const answer = await handler({
+          method: req.method,
+          path,
+          query: url.searchParams,
+          body: await readBody(req),
+        });
         if (answer === null) return send(res, 404);
         send(res, 200, answer);
       } catch (e) {

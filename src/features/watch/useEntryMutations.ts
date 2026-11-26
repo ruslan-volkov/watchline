@@ -41,7 +41,10 @@ export function useEntryMutations(surface: Surface) {
     mutationFn: (vars: {
       entryId: string;
       patch: Partial<
-        Pick<WatchEntryRow, 'status' | 'rating' | 'notes' | 'started_at' | 'finished_at' | 'snoozed'>
+        Pick<
+          WatchEntryRow,
+          'status' | 'rating' | 'notes' | 'started_at' | 'finished_at' | 'snoozed'
+        >
       >;
     }) => updateEntry(vars),
     onSuccess: (_data, vars) => {

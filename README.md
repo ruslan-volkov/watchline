@@ -4,6 +4,7 @@ Tracking perso de films & séries — « TV Time allégé ». React Native (Expo
 Voir [PLAN.md](PLAN.md) pour la vision produit complète.
 
 ## Stack
+
 - **Expo** (SDK 54, compatible avec l'Expo Go installé) + **expo-router** + TypeScript
 - **Supabase** (Postgres, Auth e-mail, RLS)
 - **TanStack Query** pour l'état serveur
@@ -11,6 +12,7 @@ Voir [PLAN.md](PLAN.md) pour la vision produit complète.
 - Données média : **TMDB** (`src/media/tmdb.ts`) derrière l'interface `MediaProvider`. Bascule automatiquement sur le mock (`src/media/mock.ts`) si `EXPO_PUBLIC_TMDB_ACCESS_TOKEN` est absent.
 
 ## Périmètre implémenté (Phase 1 — cœur)
+
 Auth e-mail + onboarding, recherche & ajout, statuts (à voir / en cours / vu), progression
 épisode par épisode avec **cascade** (toast ≤ 5, dialogue > 5, re-tap décoche), notation
 5 étoiles + note, timeline groupée par échéance, watchlist filtrable, bibliothèque
@@ -22,11 +24,13 @@ des tokens qui basculent automatiquement (`src/theme/tokens.ts`).
 Bouton d'ajout en **bouton flottant (FAB)** sur l'accueil et la watchlist.
 
 ### Amis (Phase 2 — fait)
+
 Recherche par pseudo (RPC `search_profiles`), demande / acceptation / refus, liste d'amis
 avec activité passive une ligne (« Regarde … »), respect de `activity_visible`. RLS testée
 de bout en bout (privé, ami visible, ami masqué, visibilité des demandes en attente).
 
 ### TMDB (Phase 2 — fait)
+
 Recherche multi (films + séries), fiche film, fiche série avec saisons/épisodes réels
 (titres + dates en français) alimentant la cascade. Jeton dans `EXPO_PUBLIC_TMDB_ACCESS_TOKEN`.
 
@@ -34,6 +38,7 @@ Recherche multi (films + séries), fiche film, fiche série avec saisons/épisod
 > relance Metro en vidant le cache — `npx expo start --clear`.
 
 ### Digest de notifications (Phase 2 — backend fait)
+
 - Table `push_tokens` (RLS par utilisateur) + enregistrement du token côté client
   (`src/features/notifications/`, no-op silencieux hors development build).
 - Edge Function `daily-digest` (`supabase/functions/daily-digest/`) : calcule les sorties
@@ -49,6 +54,7 @@ Recherche multi (films + séries), fiche film, fiche série avec saisons/épisod
 - **La réception se teste sur un development build** (le push distant est inactif dans Expo Go).
 
 ### Téléchargements vers un NAS (fait)
+
 Depuis la fiche d'un film ou d'une série, Watchline demande à **Radarr** (films) ou **Sonarr**
 (séries, saisons, épisodes) de télécharger le titre. La qualité, les langues et les indexeurs
 (c411…) restent réglés sur le NAS : l'app envoie seulement « télécharge ce titre ».
@@ -70,6 +76,7 @@ Depuis la fiche d'un film ou d'une série, Watchline demande à **Radarr** (film
   Sonarr, affichée dans l'écran NAS : elle porte un jeton personnel (table `nas_webhook_tokens`,
   créé à la première ouverture de l'écran, remplaçable par un bouton si elle fuit), pas d'en-tête ni de secret à régler. Optionnelle :
   sans elle, l'app suit quand même l'état tant qu'elle est ouverte.
+
   ```bash
   # Pas de `supabase db push` : l'historique des migrations de la prod (horodatages) ne
   # correspond pas aux fichiers 000N. Appliquer 0013_nas_webhook_tokens.sql à la main
@@ -79,7 +86,29 @@ Depuis la fiche d'un film ou d'une série, Watchline demande à **Radarr** (film
 - **Essayer sans NAS** : `node scripts/fake-arr.mjs` simule Radarr (:7878) et Sonarr (:8989),
   clé API `test-key`. Le parcours est couvert par `.maestro/nas-download.yaml`.
 
+### Recommandations
+
+Recommander un titre à des amis depuis sa fiche (avion en papier), avec un mot optionnel.
+Tout arrive dans une liste unique (`app/recommendations.tsx`, ouverte depuis Profil),
+filtrable en reçues ou envoyées.
+
+- **Relance** : 3 maximum par recommandation, espacées de 24 h. Ces limites, comme le lien
+  d'amitié, sont vérifiées par l'Edge Function `recommend-media`, seule à écrire les
+  recommandations (`rules.ts` est partagé avec l'app).
+- **Discrétion** : l'expéditeur ne sait ni si le titre a été vu ni si on a répondu « Pas pour
+  moi » (table `recommendation_inbox`, lisible par le seul destinataire), et une relance
+  après ce refus répond pareil sans rien envoyer. Il voit « Ajouté » uniquement si le
+  destinataire ajoute le titre depuis la recommandation.
+- **Mise en production** :
+
+  ```bash
+  # Appliquer 0014 et 0015 (droits) à la main (voir la note sur les migrations plus
+  # haut), puis déployer la fonction, avec vérification du JWT cette fois :
+  supabase functions deploy recommend-media --project-ref <ref>
+  ```
+
 ### Analytics (Phase 2 — fait)
+
 Tout passe par `src/lib/analytics.ts` : les noms d'événements et leurs propriétés y sont
 typés, donc renommer un événement casse le build au lieu de couper un funnel en deux.
 `src/contexts/AnalyticsContext.tsx` branche la couche sur le cycle de vie de l'app —
@@ -108,9 +137,11 @@ tracking : on suit `usePathname()` depuis le layout racine, comme le recommande 
   l'endroit d'où il est offert.
 
 ### Reste de la Phase 2 (prérequis externes)
+
 - **Auth Apple/Google** : nécessite un development build + config native OAuth.
 
 ## Configuration
+
 Le dépôt ne nomme aucun projet Supabase : `.env` (non commité) décide vers lequel l'app
 parle, `.env.local` le surcharge, et `scripts/use-local-backend.sh` écrit ce dernier pour
 pointer sur la stack locale. Copie `.env.example` → `.env` et remplis les deux variables.
@@ -134,15 +165,19 @@ Une migration passe par staging avant d'atteindre la prod ; la procédure est da
 
 Le schéma est versionné dans [`supabase/migrations/`](supabase/migrations). Être sur
 `master` ne veut pas dire être appliqué : rien n'automatise encore le déploiement.
-Staging porte les 16 migrations ; la prod en porte 14 — il lui manque `0017` et
-`0015_digest_schedule`, ce dernier ne devant pas partir avant que ses deux valeurs Vault
-soient posées, sinon le digest s'envoie avec un en-tête nul. Et **`supabase db push`
+Le dépôt en porte 18. Staging en porte 16 : il lui manque les deux migrations de
+recommandations (`0014`, `0015`), arrivées depuis par `master`. La prod en porte 14 : il
+lui manque celles-là, `0017`, et `0018_digest_schedule` — ce dernier ne devant pas partir
+avant que ses deux valeurs Vault soient posées, sinon le digest s'envoie avec un en-tête
+nul. L'état des deux migrations de recommandations sur les projets déployés n'a pas été
+vérifié ici ; elles viennent d'un autre chantier. Et **`supabase db push`
 n'est pas utilisable sur ces projets** : leur historique porte des versions horodatées qui
 ne correspondent pas aux noms de fichiers, donc la CLI ne reconnaîtrait aucune migration
 comme appliquée et rejouerait tout. Les migrations se posent par l'API de management ou le
 tableau de bord.
 
 ### ⚠️ Étape manuelle : confirmation e-mail
+
 Par défaut, Supabase exige une confirmation par e-mail à l'inscription (pas de session
 immédiate). Pour un usage perso fluide, désactive-la :
 **Dashboard Supabase → Authentication → Sign In / Providers → Email → décocher « Confirm email ».**
@@ -150,6 +185,7 @@ Sans ça, après inscription il faut cliquer le lien reçu par mail avant de pou
 (l'app gère ce cas et affiche un message).
 
 ## Lancer
+
 ```bash
 npm install --legacy-peer-deps
 npx expo start
@@ -157,6 +193,7 @@ npx expo start
 Puis `i` (simulateur iOS), `a` (Android) ou scanne le QR avec Expo Go.
 
 ## Développement local (backend jetable)
+
 Le schéma et la fonction tournent en local, sans jamais toucher au projet cloud.
 
 ```bash
@@ -175,7 +212,7 @@ erreur sur une base vide. Ce qu'il faut savoir :
   policies RLS de chaque table ; `anon` n'en reçoit aucun, volontairement.
   ⚠️ Cette migration n'est pas encore appliquée sur le projet cloud (qui porte les
   droits hérités de l'ancien défaut) — voir `FORMATION-DEPLOIEMENT.md`, palier 3.
-- **Planification** — `0015_digest_schedule.sql` déclare le job `pg_cron`, qui lit son
+- **Planification** — `0018_digest_schedule.sql` déclare le job `pg_cron`, qui lit son
   secret et son URL de base dans Vault au moment de l'appel. Ces deux valeurs sont de
   la configuration, pas du schéma : `supabase/seed.sql` les pose pour le local (et y
   désactive le job — le digest poste vers `exp.host`, donc un stack de dev avec de vrais
@@ -193,7 +230,7 @@ erreur sur une base vide. Ce qu'il faut savoir :
   viennent de `config.toml`, et un `supabase start -x <service>` peut laisser Studio
   ou le serveur de mail de côté (les tests e2e le font).
 - **⚠️ La stack est partagée** — le `project_id` étant dans un fichier versionné, tous
-  les worktrees du dépôt pilotent *les mêmes* conteneurs. Un `supabase db reset` fait
+  les worktrees du dépôt pilotent _les mêmes_ conteneurs. Un `supabase db reset` fait
   donc échouer le run e2e de quelqu'un d'autre, et un `supabase stop` le coupe net.
   Vérifie avec `docker ps --filter name=watchline` avant de réinitialiser.
 - **Hôtes** — le simulateur iOS partage le `localhost` de la machine. Un émulateur
@@ -203,6 +240,7 @@ erreur sur une base vide. Ce qu'il faut savoir :
 Revenir au cloud : supprimer `.env.local`.
 
 ## Vérifs
+
 ```bash
 npx tsc --noEmit              # typecheck
 npx expo export --platform ios --output-dir /tmp/wl-export   # bundle de contrôle

@@ -51,7 +51,8 @@ export type Surface =
   | 'media_detail'
   | 'paused'
   | 'friend'
-  | 'calendar';
+  | 'calendar'
+  | 'recommendations';
 
 /** How an episode got marked watched. */
 export type MarkMode = 'next' | 'manual' | 'cascade';
@@ -81,6 +82,15 @@ interface EventProps {
 
   friend_request_sent: void;
   friend_request_accepted: void;
+
+  recommendation_sent: {
+    media_type: MediaType;
+    tmdb_id: number;
+    recipient_count: number;
+    has_message: boolean;
+  };
+  recommendation_nudged: { has_message: boolean };
+  recommendation_dismissed: void;
 
   /** `scope`: what was asked for. `custom_profile`: a quality profile picked by hand. */
   download_requested: {

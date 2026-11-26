@@ -1,14 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import {
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AnimatedCheck } from '@/components/AnimatedCheck';
 import { CardRow } from '@/components/CardRow';
@@ -65,11 +58,7 @@ function Section({
     <View>
       <Pressable onPress={onToggle} style={styles.sectionHeader} accessibilityRole="button">
         <SectionHeader>{`${title} · ${count}`}</SectionHeader>
-        <Ionicons
-          name={open ? 'chevron-up' : 'chevron-down'}
-          size={18}
-          color={colors.textMeta}
-        />
+        <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textMeta} />
       </Pressable>
       <Collapsible open={open}>{children}</Collapsible>
     </View>
@@ -125,7 +114,11 @@ export default function Watchlist() {
   const [filter, setFilter] = useState<Filter>('all');
   const [enCoursOpen, setEnCoursOpen] = useState(true);
   const [aVoirOpen, setAVoirOpen] = useState(true);
-  const { refreshing, onRefresh } = usePullRefresh([['watch_entries'], ['progress_all'], ['media_details']]);
+  const { refreshing, onRefresh } = usePullRefresh([
+    ['watch_entries'],
+    ['progress_all'],
+    ['media_details'],
+  ]);
   const tabBarClearance = useTabBarClearance();
 
   // "À voir" — not-yet-started titles.
@@ -153,15 +146,15 @@ export default function Watchlist() {
             <Pressable
               key={f.key}
               onPress={() => setFilter(f.key)}
-              style={[
-                styles.chip,
-                { backgroundColor: active ? colors.accent : colors.surfaceAlt },
-              ]}
+              style={[styles.chip, { backgroundColor: active ? colors.accent : colors.surfaceAlt }]}
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
             >
               <Text
-                style={[styles.chipText, { color: active ? colors.accentText : colors.textSecondary }]}
+                style={[
+                  styles.chipText,
+                  { color: active ? colors.accentText : colors.textSecondary },
+                ]}
               >
                 {f.label}
               </Text>

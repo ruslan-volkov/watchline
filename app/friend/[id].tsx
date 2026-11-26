@@ -46,10 +46,7 @@ export default function FriendProfile() {
   });
   const isLoading = entriesLoading || linkLoading;
 
-  const watching = useMemo(
-    () => (entries ?? []).filter((e) => e.status === 'watching'),
-    [entries],
-  );
+  const watching = useMemo(() => (entries ?? []).filter((e) => e.status === 'watching'), [entries]);
   const completed = useMemo(
     () =>
       (entries ?? [])
@@ -128,7 +125,10 @@ export default function FriendProfile() {
                           posterPath={e.media.poster_path}
                           width={posterW}
                         />
-                        <Text numberOfLines={1} style={[styles.posterTitle, { color: colors.textPrimary }]}>
+                        <Text
+                          numberOfLines={1}
+                          style={[styles.posterTitle, { color: colors.textPrimary }]}
+                        >
                           {e.media.title}
                         </Text>
                         {e.rating ? <RatingStars value={e.rating} size={12} /> : null}

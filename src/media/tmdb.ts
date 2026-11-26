@@ -51,7 +51,8 @@ function toSummary(item: TmdbSearchItem, forced?: MediaType): MediaSummary | nul
   return {
     tmdbId: item.id,
     mediaType,
-    title: (mediaType === 'movie' ? item.title : item.name) ?? item.title ?? item.name ?? 'Sans titre',
+    title:
+      (mediaType === 'movie' ? item.title : item.name) ?? item.title ?? item.name ?? 'Sans titre',
     posterPath: posterUrl(item.poster_path),
     backdropPath: item.backdrop_path ? `${BACKDROP}${item.backdrop_path}` : null,
     // TMDB sends "" (not null) for unannounced dates, and "" is not a valid
@@ -94,16 +95,12 @@ export const tmdbMediaProvider: MediaProvider = {
       include_adult: 'false',
       page: '1',
     });
-    return data.results
-      .map((r) => toSummary(r))
-      .filter((s): s is MediaSummary => s !== null);
+    return data.results.map((r) => toSummary(r)).filter((s): s is MediaSummary => s !== null);
   },
 
   async trending(): Promise<MediaSummary[]> {
     const data = await tmdb<{ results: TmdbSearchItem[] }>('/trending/all/week');
-    return data.results
-      .map((r) => toSummary(r))
-      .filter((s): s is MediaSummary => s !== null);
+    return data.results.map((r) => toSummary(r)).filter((s): s is MediaSummary => s !== null);
   },
 
   async getTvdbId(tmdbId: number): Promise<number | null> {
@@ -130,9 +127,7 @@ export const tmdbMediaProvider: MediaProvider = {
     if (mediaType === 'movie') {
       const m = await tmdb<
         TmdbSearchItem & { runtime?: number; genres?: { name: string }[]; status?: string }
-      >(
-        `/movie/${tmdbId}`,
-      );
+      >(`/movie/${tmdbId}`);
       const summary = toSummary(m, 'movie');
       if (!summary) return null;
       return {

@@ -14,6 +14,7 @@ import { DensityProvider } from '@/contexts/DensityContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { NasConfigProvider } from '@/features/nas/NasConfigContext';
 import { PushRegistrationProvider } from '@/features/notifications/PushRegistrationContext';
+import { useNotificationRouting } from '@/features/notifications/useNotificationRouting';
 import { QUERY_CACHE_MAX_AGE, queryPersister } from '@/lib/queryPersist';
 
 // Splash grounds, kept in sync with the expo-splash-screen plugin in app.json.
@@ -77,6 +78,7 @@ function RootNavigator() {
   useProtectedRoute();
 
   const gating = initializing || (session && !profile);
+  useNotificationRouting(!gating && !!profile?.username);
 
   // Reveal the app only once there's something real to show.
   useEffect(() => {

@@ -1,0 +1,73 @@
+appId: com.rvolkov.watchline.dev
+name: Receive a recommendation and add it, send one, then nudge about it
+# Needs `-e API_URL=... -e ANON_KEY=...` and the recommend-media Edge Function, both of
+# which scripts/e2e-ios.sh provides. The friend is driven through the API, see scripts/*.js.
+---
+- runScript: scripts/seed-friend.js
+- runFlow:
+    file: subflows/sign-up.yaml
+    env:
+      USERNAME: maestro
+
+- tapOn: Annuler
+- tapOn: Profil, tab.*
+- tapOn: .*Ajouter des amis.*
+- tapOn: Ajouter par pseudo
+- inputText: ${output.friendName}
+- assertVisible: ${output.friendName}
+- tapOn: Ajouter
+- assertVisible: Envoyée
+- runScript: scripts/accept-request.js
+
+# The send sheet lists accepted friends, so the cached request has to be refetched first.
+- runFlow: subflows/open-friends.yaml
+- assertVisible: .*${output.friendName}.*Regarde.*
+
+# The friend recommends their series. It lands in the list, flagged as received.
+- runScript: scripts/recommend-from-friend.js
+- launchApp
+- tapOn: Profil, tab.*
+- tapOn: .*vous conseillez.*
+- swipe:
+    start: 50%,30%
+    end: 50%,70%
+    duration: 800
+- assertVisible: .*De @${output.friendName}.*
+- assertVisible: .*Regarde celle-ci.*
+- takeScreenshot: recommendation-received
+- tapOn: Ajouter à ma liste
+- assertVisible: Dans ta liste
+
+# Recommend a title in return.
+- launchApp
+- tapOn: Rechercher un titre
+- tapOn:
+    text: Rechercher un film ou une série
+- inputText: Comète
+# The search field holds the same text, so aim at the single result's row.
+- tapOn:
+    point: 40%,19%
+- tapOn: Recommander à un ami
+# A friend's row reads "L, lucie…": the avatar's initial comes first.
+- tapOn: .*${output.friendName}.*
+- tapOn:
+    id: recommend-message
+- inputText: Pour toi
+- tapOn: Envoyer
+- assertVisible: Recommandation envoyée
+
+# It sits next to the received one, and can be nudged once.
+- launchApp
+- tapOn: Profil, tab.*
+- tapOn: .*vous conseillez.*
+- swipe:
+    start: 50%,30%
+    end: 50%,70%
+    duration: 800
+- assertVisible: .*À @${output.friendName}.*
+- takeScreenshot: recommendation-sent
+- tapOn: Relancer
+- tapOn: Envoyer la relance
+- assertVisible: Relance envoyée
+- assertVisible: .*Relance possible demain.*
+- takeScreenshot: recommendation-nudged

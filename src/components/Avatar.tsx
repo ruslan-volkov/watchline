@@ -40,7 +40,9 @@ export function Avatar({ name, avatarUrl, size = 44, seed }: Props) {
         },
       ]}
     >
-      <Text style={{ color: posterTextColor(key, scheme), fontSize: size * 0.42, fontWeight: '800' }}>
+      <Text
+        style={{ color: posterTextColor(key, scheme), fontSize: size * 0.42, fontWeight: '800' }}
+      >
         {initial}
       </Text>
     </View>

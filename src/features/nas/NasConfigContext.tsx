@@ -40,21 +40,27 @@ export function NasConfigProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setLoaded(true));
   }, []);
 
-  const save = useCallback(async (service: ArrService, next: ArrConfig) => {
-    await saveArrConfig(service, next);
-    setConfig((c) => ({ ...c, [service]: next }));
-    // States read from the old address no longer apply.
-    qc.removeQueries({ queryKey: ['nas'] });
-  }, [qc]);
+  const save = useCallback(
+    async (service: ArrService, next: ArrConfig) => {
+      await saveArrConfig(service, next);
+      setConfig((c) => ({ ...c, [service]: next }));
+      // States read from the old address no longer apply.
+      qc.removeQueries({ queryKey: ['nas'] });
+    },
+    [qc],
+  );
 
-  const clear = useCallback(async (service: ArrService) => {
-    await clearArrConfig(service);
-    setConfig((c) => {
-      const { [service]: _removed, ...rest } = c;
-      return rest;
-    });
-    qc.removeQueries({ queryKey: ['nas'] });
-  }, [qc]);
+  const clear = useCallback(
+    async (service: ArrService) => {
+      await clearArrConfig(service);
+      setConfig((c) => {
+        const { [service]: _removed, ...rest } = c;
+        return rest;
+      });
+      qc.removeQueries({ queryKey: ['nas'] });
+    },
+    [qc],
+  );
 
   const value = useMemo(() => ({ config, loaded, save, clear }), [config, loaded, save, clear]);
   return <NasConfigContext.Provider value={value}>{children}</NasConfigContext.Provider>;

@@ -62,9 +62,7 @@ export default function Library() {
   const stats = useMemo(() => {
     const list = entries ?? [];
     const rated = list.filter((e) => e.status === 'completed' && e.rating != null);
-    const avg = rated.length
-      ? rated.reduce((s, e) => s + (e.rating ?? 0), 0) / rated.length
-      : null;
+    const avg = rated.length ? rated.reduce((s, e) => s + (e.rating ?? 0), 0) / rated.length : null;
     return {
       movies: list.filter((e) => e.media.media_type === 'movie' && e.status === 'completed').length,
       series: list.filter((e) => e.media.media_type === 'tv' && e.status === 'completed').length,
@@ -123,7 +121,9 @@ export default function Library() {
 
   const header = (
     <View>
-      <View style={[styles.counters, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View
+        style={[styles.counters, { backgroundColor: colors.surface, borderColor: colors.border }]}
+      >
         <Counter value={stats.movies} label="films vus" />
         <Counter value={stats.series} label="séries vues" />
         <Counter value={stats.episodes} label="épisodes vus" />
@@ -142,7 +142,10 @@ export default function Library() {
               accessibilityRole="button"
             >
               <Text
-                style={[styles.chipText, { color: active ? colors.accentText : colors.textSecondary }]}
+                style={[
+                  styles.chipText,
+                  { color: active ? colors.accentText : colors.textSecondary },
+                ]}
               >
                 {s.label}
               </Text>

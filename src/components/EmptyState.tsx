@@ -36,7 +36,12 @@ export function EmptyState({ icon, title, message, actionLabel, onAction }: Prop
 }
 
 const styles = StyleSheet.create({
-  wrap: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, paddingVertical: 48 },
+  wrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 48,
+  },
   iconWrap: {
     width: 64,
     height: 64,

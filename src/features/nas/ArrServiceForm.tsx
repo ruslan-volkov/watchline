@@ -43,15 +43,15 @@ function Chips<T>({
           <Pressable
             key={label(item)}
             onPress={() => onPick(item)}
-            style={[
-              styles.chip,
-              { backgroundColor: active ? colors.accent : colors.surfaceAlt },
-            ]}
+            style={[styles.chip, { backgroundColor: active ? colors.accent : colors.surfaceAlt }]}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
           >
             <Text
-              style={[styles.chipText, { color: active ? colors.accentText : colors.textSecondary }]}
+              style={[
+                styles.chipText,
+                { color: active ? colors.accentText : colors.textSecondary },
+              ]}
             >
               {label(item)}
             </Text>
@@ -149,21 +149,25 @@ export function ArrServiceForm({ service }: { service: ArrService }) {
   };
 
   const confirmClear = () => {
-    Alert.alert(`Supprimer ${label} ?`, 'L’adresse et la clé API seront effacées de cet appareil.', [
-      { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Supprimer',
-        style: 'destructive',
-        onPress: async () => {
-          await clear(service);
-          setUrl('');
-          setApiKey('');
-          setProfiles([]);
-          setFolders([]);
-          setStatus({ kind: 'idle' });
+    Alert.alert(
+      `Supprimer ${label} ?`,
+      'L’adresse et la clé API seront effacées de cet appareil.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: async () => {
+            await clear(service);
+            setUrl('');
+            setApiKey('');
+            setProfiles([]);
+            setFolders([]);
+            setStatus({ kind: 'idle' });
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const testing = status.kind === 'testing';

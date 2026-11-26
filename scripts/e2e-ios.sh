@@ -61,6 +61,12 @@ xcrun simctl install booted ios/build/Build/Products/Release-iphonesimulator/Wat
 # Stand-ins for Radarr and Sonarr, for the NAS flow.
 node scripts/fake-arr.mjs >/dev/null &
 FAKE_ARR_PID=$!
-trap 'kill $FAKE_ARR_PID 2>/dev/null || true' EXIT
+
+# The recommendations flow goes through an Edge Function. This takes over the local
+# stack's function runtime, from anything else serving functions on it.
+supabase functions serve >/dev/null 2>&1 &
+FUNCTIONS_PID=$!
+trap 'kill $FAKE_ARR_PID $FUNCTIONS_PID 2>/dev/null || true' EXIT
+until curl -s -o /dev/null "$API_URL/functions/v1/recommend-media"; do sleep 1; done
 
 maestro test -e API_URL="$API_URL" -e ANON_KEY="$ANON_KEY" .maestro
