@@ -15,7 +15,11 @@ export function TextField({ label, style, ...rest }: Props) {
         placeholderTextColor={colors.textMeta}
         style={[
           styles.input,
-          { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary },
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            color: colors.textPrimary,
+          },
           style,
         ]}
         {...rest}

@@ -5,12 +5,14 @@ jamais contre la prod. Sans jeton TMDB dans le build, la recherche répond depui
 `src/media/mock.ts`, donc les titres sont stables.
 
 ## Prérequis (une fois)
+
 - Xcode installé et sa licence acceptée : `sudo xcodebuild -license accept`
 - Docker lancé
 - Maestro : `brew install mobile-dev-inc/tap/maestro` (nécessite un JDK : `brew install openjdk`)
 - Un simulateur iOS « iPhone 17 Pro » (autre appareil : `E2E_DEVICE="iPhone 17" npm run test:e2e`)
 
 ## Lancer
+
 ```bash
 npm run test:e2e
 ```
@@ -22,6 +24,7 @@ L'app est construite avec `APP_VARIANT=development` (id `com.rvolkov.watchline.d
 pas écraser une vraie installation de « Watchline ».
 
 ## Les flows
+
 - `onboarding-add-title.yaml` : inscription, pseudo, ajout d'un titre, présence dans la watchlist.
 - `friends.yaml` : demande d'ami, activité visible, puis « Activité masquée ». L'amie est un
   second utilisateur créé et piloté par l'API (`scripts/*.js`, qui reçoivent `API_URL` et
@@ -39,6 +42,7 @@ pas écraser une vraie installation de « Watchline ».
 > comptes et le fait échouer ; relancer suffit.
 
 ## Écrire un flow
+
 - Cibler par texte visible ou `accessibilityLabel` d'abord ; `testID` seulement pour les
   champs de saisie, qui n'ont pas de texte propre (`sign-up-email`, `onboarding-username`…).
 - Un compte neuf par exécution (e-mail horodaté) : les flows n'ont pas besoin de remise à zéro

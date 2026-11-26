@@ -93,7 +93,8 @@ export default function Search() {
   };
 
   const submitRating = async (rating: number | null, notes: string | null) => {
-    if (ratingFor) await update.mutateAsync({ entryId: ratingFor.entryId, patch: { rating, notes } });
+    if (ratingFor)
+      await update.mutateAsync({ entryId: ratingFor.entryId, patch: { rating, notes } });
     setRatingFor(null);
   };
 
@@ -105,7 +106,10 @@ export default function Search() {
       tmdb_id: item.tmdbId,
       source: showTrending ? 'trending' : 'search',
     });
-    router.push({ pathname: '/media/[id]', params: { id: String(item.tmdbId), type: item.mediaType } });
+    router.push({
+      pathname: '/media/[id]',
+      params: { id: String(item.tmdbId), type: item.mediaType },
+    });
   };
 
   // Re-tapping the status tag removes the entry, with an "Annuler" toast that
@@ -120,7 +124,7 @@ export default function Search() {
   };
 
   const listData = useMemo(
-    () => (showTrending ? trending ?? [] : results ?? []),
+    () => (showTrending ? (trending ?? []) : (results ?? [])),
     [showTrending, trending, results],
   );
   const loading = showTrending ? trendingLoading : isLoading;

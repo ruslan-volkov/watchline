@@ -83,8 +83,8 @@ export default function Nas() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={[styles.intro, { color: colors.textSecondary }]}>
-          Relie Watchline à Radarr (films) et Sonarr (séries) pour lancer un téléchargement
-          depuis la fiche d’un titre. La qualité et les langues restent réglées sur le NAS.
+          Relie Watchline à Radarr (films) et Sonarr (séries) pour lancer un téléchargement depuis
+          la fiche d’un titre. La qualité et les langues restent réglées sur le NAS.
         </Text>
 
         {SERVICES.map((service) => (
@@ -97,17 +97,22 @@ export default function Nas() {
         <SectionHeader>Notification de fin</SectionHeader>
         <Text style={[styles.intro, { color: colors.textSecondary }]}>
           Pour être prévenu quand un téléchargement est terminé, ajoute dans Radarr et Sonarr
-          (Réglages → Connect → Webhook, événement « On Import ») cette adresse, en POST. Elle
-          est personnelle : ne la partage pas.
+          (Réglages → Connect → Webhook, événement « On Import ») cette adresse, en POST. Elle est
+          personnelle : ne la partage pas.
         </Text>
         <Text
           selectable
           style={[
             styles.webhook,
-            { color: colors.textPrimary, backgroundColor: colors.surface, borderColor: colors.border },
+            {
+              color: colors.textPrimary,
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
           ]}
         >
-          {webhookUrl ?? (webhookToken === null ? 'Adresse indisponible, réessaie plus tard.' : 'Chargement…')}
+          {webhookUrl ??
+            (webhookToken === null ? 'Adresse indisponible, réessaie plus tard.' : 'Chargement…')}
         </Text>
         {webhookUrl ? (
           <Button

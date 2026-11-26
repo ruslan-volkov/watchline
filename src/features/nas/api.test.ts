@@ -37,7 +37,9 @@ describe('testConnection', () => {
   });
 
   it('reports a network failure as unreachable', async () => {
-    global.fetch = jest.fn().mockRejectedValue(new TypeError('Network request failed')) as unknown as typeof fetch;
+    global.fetch = jest
+      .fn()
+      .mockRejectedValue(new TypeError('Network request failed')) as unknown as typeof fetch;
     await expect(testConnection('radarr', target)).rejects.toMatchObject({ kind: 'unreachable' });
   });
 
@@ -51,12 +53,18 @@ describe('testConnection', () => {
 
   it('treats a non-JSON reply (a proxy login page) as an unexpected response', async () => {
     reply({ badJson: true });
-    await expect(testConnection('radarr', target)).rejects.toMatchObject({ kind: 'http', detail: 200 });
+    await expect(testConnection('radarr', target)).rejects.toMatchObject({
+      kind: 'http',
+      detail: 200,
+    });
   });
 
   it('reports a server error with its status', async () => {
     reply({ ok: false, status: 502 });
-    await expect(testConnection('sonarr', target)).rejects.toMatchObject({ kind: 'http', detail: 502 });
+    await expect(testConnection('sonarr', target)).rejects.toMatchObject({
+      kind: 'http',
+      detail: 502,
+    });
   });
 });
 

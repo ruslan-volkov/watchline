@@ -4,6 +4,7 @@ Tracking perso de films & séries — « TV Time allégé ». React Native (Expo
 Voir [PLAN.md](PLAN.md) pour la vision produit complète.
 
 ## Stack
+
 - **Expo** (SDK 54, compatible avec l'Expo Go installé) + **expo-router** + TypeScript
 - **Supabase** (Postgres, Auth e-mail, RLS)
 - **TanStack Query** pour l'état serveur
@@ -11,6 +12,7 @@ Voir [PLAN.md](PLAN.md) pour la vision produit complète.
 - Données média : **TMDB** (`src/media/tmdb.ts`) derrière l'interface `MediaProvider`. Bascule automatiquement sur le mock (`src/media/mock.ts`) si `EXPO_PUBLIC_TMDB_ACCESS_TOKEN` est absent.
 
 ## Périmètre implémenté (Phase 1 — cœur)
+
 Auth e-mail + onboarding, recherche & ajout, statuts (à voir / en cours / vu), progression
 épisode par épisode avec **cascade** (toast ≤ 5, dialogue > 5, re-tap décoche), notation
 5 étoiles + note, timeline groupée par échéance, watchlist filtrable, bibliothèque
@@ -22,11 +24,13 @@ des tokens qui basculent automatiquement (`src/theme/tokens.ts`).
 Bouton d'ajout en **bouton flottant (FAB)** sur l'accueil et la watchlist.
 
 ### Amis (Phase 2 — fait)
+
 Recherche par pseudo (RPC `search_profiles`), demande / acceptation / refus, liste d'amis
 avec activité passive une ligne (« Regarde … »), respect de `activity_visible`. RLS testée
 de bout en bout (privé, ami visible, ami masqué, visibilité des demandes en attente).
 
 ### TMDB (Phase 2 — fait)
+
 Recherche multi (films + séries), fiche film, fiche série avec saisons/épisodes réels
 (titres + dates en français) alimentant la cascade. Jeton dans `EXPO_PUBLIC_TMDB_ACCESS_TOKEN`.
 
@@ -34,6 +38,7 @@ Recherche multi (films + séries), fiche film, fiche série avec saisons/épisod
 > relance Metro en vidant le cache — `npx expo start --clear`.
 
 ### Digest de notifications (Phase 2 — backend fait)
+
 - Table `push_tokens` (RLS par utilisateur) + enregistrement du token côté client
   (`src/features/notifications/`, no-op silencieux hors development build).
 - Edge Function `daily-digest` (`supabase/functions/daily-digest/`) : calcule les sorties
@@ -48,6 +53,7 @@ Recherche multi (films + séries), fiche film, fiche série avec saisons/épisod
   `digest_time` par utilisateur n'est pas encore honoré (envoi unique à 08:00 UTC) — amélioration future.
 
 ### Téléchargements vers un NAS (fait)
+
 Depuis la fiche d'un film ou d'une série, Watchline demande à **Radarr** (films) ou **Sonarr**
 (séries, saisons, épisodes) de télécharger le titre. La qualité, les langues et les indexeurs
 (c411…) restent réglés sur le NAS : l'app envoie seulement « télécharge ce titre ».
@@ -69,6 +75,7 @@ Depuis la fiche d'un film ou d'une série, Watchline demande à **Radarr** (film
   Sonarr, affichée dans l'écran NAS : elle porte un jeton personnel (table `nas_webhook_tokens`,
   créé à la première ouverture de l'écran, remplaçable par un bouton si elle fuit), pas d'en-tête ni de secret à régler. Optionnelle :
   sans elle, l'app suit quand même l'état tant qu'elle est ouverte.
+
   ```bash
   # Pas de `supabase db push` : l'historique des migrations de la prod (horodatages) ne
   # correspond pas aux fichiers 000N. Appliquer 0013_nas_webhook_tokens.sql à la main
@@ -79,6 +86,7 @@ Depuis la fiche d'un film ou d'une série, Watchline demande à **Radarr** (film
   clé API `test-key`. Le parcours est couvert par `.maestro/nas-download.yaml`.
 
 ### Recommandations
+
 Recommander un titre à des amis depuis sa fiche (avion en papier), avec un mot optionnel.
 Tout arrive dans une liste unique (`app/recommendations.tsx`, ouverte depuis Profil),
 filtrable en reçues ou envoyées.
@@ -91,6 +99,7 @@ filtrable en reçues ou envoyées.
   après ce refus répond pareil sans rien envoyer. Il voit « Ajouté » uniquement si le
   destinataire ajoute le titre depuis la recommandation.
 - **Mise en production** :
+
   ```bash
   # Appliquer 0014 et 0015 (droits) à la main (voir la note sur les migrations plus
   # haut), puis déployer la fonction, avec vérification du JWT cette fois :
@@ -98,6 +107,7 @@ filtrable en reçues ou envoyées.
   ```
 
 ### Analytics (Phase 2 — fait)
+
 Tout passe par `src/lib/analytics.ts` : les noms d'événements et leurs propriétés y sont
 typés, donc renommer un événement casse le build au lieu de couper un funnel en deux.
 `src/contexts/AnalyticsContext.tsx` branche la couche sur le cycle de vie de l'app —
@@ -126,15 +136,18 @@ tracking : on suit `usePathname()` depuis le layout racine, comme le recommande 
   l'endroit d'où il est offert.
 
 ### Reste de la Phase 2 (prérequis externes)
+
 - **Auth Apple/Google** : nécessite un development build + config native OAuth.
 
 ## Configuration
+
 Le fichier `.env` est déjà renseigné avec le projet Supabase `watchline` (`ruagmrftlzfrispfmvsp`).
 Pour repartir sur un autre projet, copie `.env.example` → `.env` et remplis les deux variables.
 
 Le schéma est versionné dans [`supabase/migrations/`](supabase/migrations) (déjà appliqué sur le projet cloud).
 
 ### ⚠️ Étape manuelle : confirmation e-mail
+
 Par défaut, Supabase exige une confirmation par e-mail à l'inscription (pas de session
 immédiate). Pour un usage perso fluide, désactive-la :
 **Dashboard Supabase → Authentication → Sign In / Providers → Email → décocher « Confirm email ».**
@@ -142,6 +155,7 @@ Sans ça, après inscription il faut cliquer le lien reçu par mail avant de pou
 (l'app gère ce cas et affiche un message).
 
 ## Lancer
+
 ```bash
 npm install --legacy-peer-deps
 npx expo start
@@ -149,6 +163,7 @@ npx expo start
 Puis `i` (simulateur iOS), `a` (Android) ou scanne le QR avec Expo Go.
 
 ## Vérifs
+
 ```bash
 npx tsc --noEmit              # typecheck
 npx expo export --platform ios --output-dir /tmp/wl-export   # bundle de contrôle

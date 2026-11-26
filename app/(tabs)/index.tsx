@@ -1,13 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { AnimatedCheck } from '@/components/AnimatedCheck';
@@ -131,7 +125,11 @@ export default function Timeline() {
     if (ratingFor) update.mutate({ entryId: ratingFor.entryId, patch: { rating, notes } });
     setRatingFor(null);
   };
-  const { refreshing, onRefresh } = usePullRefresh([['watch_entries'], ['progress_all'], ['media_details']]);
+  const { refreshing, onRefresh } = usePullRefresh([
+    ['watch_entries'],
+    ['progress_all'],
+    ['media_details'],
+  ]);
   const tabBarClearance = useTabBarClearance();
 
   const openMedia = (tmdbId: number, type: MediaType) => {
@@ -181,7 +179,11 @@ export default function Timeline() {
           title: c.entry.media.title,
           posterPath: c.entry.media.poster_path,
           backdropPath: c.entry.media.backdrop_path,
-          subtitle: releaseSubtitle(ep.airDate, 'episode', `S${ep.seasonNumber}E${ep.episodeNumber}`),
+          subtitle: releaseSubtitle(
+            ep.airDate,
+            'episode',
+            `S${ep.seasonNumber}E${ep.episodeNumber}`,
+          ),
           isMovie: false,
           tmdbId: c.entry.media.tmdb_id,
           mediaType: 'tv',
@@ -313,7 +315,8 @@ export default function Timeline() {
         title: e.media.title,
         posterPath: e.media.poster_path,
         backdropPath: e.media.backdrop_path,
-        subtitle: e.media.media_type === 'movie' ? 'Film · sortie non datée' : 'Série · sortie non datée',
+        subtitle:
+          e.media.media_type === 'movie' ? 'Film · sortie non datée' : 'Série · sortie non datée',
         tmdbId: e.media.tmdb_id,
         mediaType: e.media.media_type,
       });
@@ -398,218 +401,221 @@ export default function Timeline() {
         )
       ) : (
         <>
-        <View pointerEvents="box-none" style={[styles.toggleBar, { bottom: tabBarClearance + 68 }]}>
-          <View style={styles.viewToggle}>
-            {(['list', 'calendar'] as const).map((v) => {
-              const active = upcomingView === v;
-              return (
-                <Pressable
-                  key={v}
-                  onPress={() => switchView(v)}
-                  style={[
-                    styles.viewToggleItem,
-                    { backgroundColor: active ? colors.accent : colors.surface },
-                  ]}
-                  accessibilityRole="button"
-                  accessibilityLabel={v === 'list' ? 'Vue liste' : 'Vue calendrier'}
-                  accessibilityState={{ selected: active }}
-                >
-                  <Ionicons
-                    name={v === 'list' ? 'list' : 'calendar'}
-                    size={22}
-                    color={active ? colors.accentText : colors.textSecondary}
-                  />
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-        <Animated.ScrollView
-          ref={scrollRef}
-          contentContainerStyle={{
-            paddingHorizontal: spacing.screenPadding,
-            paddingBottom: tabBarClearance + BOTTOM_CONTROLS_CLEARANCE,
-          }}
-          showsVerticalScrollIndicator={false}
-          onScroll={(e) => {
-            currentOffset.current = e.nativeEvent.contentOffset.y;
-          }}
-          scrollEventThrottle={64}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={colors.textSecondary}
-            />
-          }
-        >
-          {upcomingView === 'calendar' ? (
-            calendarItems.length > 0 ? (
-              <UpcomingCalendar
-                items={calendarItems}
-                onOpen={openMedia}
-                screenPadding={spacing.screenPadding}
-                scrollRef={scrollRef}
-                autoJump={!calendarSeen.current}
-              />
-            ) : (
-              <Text style={[styles.quiet, { color: colors.textMeta }]}>
-                Rien dans ton calendrier pour l’instant.
-              </Text>
-            )
-          ) : (
-            <>
-          {backlog.length > 0 ? (
-            <Animated.View entering={FadeIn.duration(260)}>
-              <Pressable
-                onPress={() => setBacklogOpen((v) => !v)}
-                style={styles.collapseHeader}
-                accessibilityRole="button"
-              >
-                <SectionHeader>{`À rattraper · ${backlog.length}`}</SectionHeader>
-                <Ionicons
-                  name={backlogOpen ? 'chevron-up' : 'chevron-down'}
-                  size={18}
-                  color={colors.textMeta}
-                />
-              </Pressable>
-              <Collapsible open={backlogOpen}>
-                {backlog.map((item) => (
-                  <BacklogRow
-                    key={item.key}
-                    item={{
-                      key: item.key,
-                      seed: item.seed,
-                      title: item.title,
-                      posterPath: item.posterPath,
-                      backdropPath: item.backdropPath,
-                      subtitle: item.subtitle,
-                      episode: item.episode
-                        ? {
-                            seasonNumber: item.episode.seasonNumber,
-                            episodeNumber: item.episode.episodeNumber,
-                          }
-                        : undefined,
-                    }}
-                    onOpen={() => openMedia(item.tmdbId, item.mediaType)}
-                    onSnooze={() => snooze(item.entryId)}
-                    onMark={
-                      item.episode
-                        ? () =>
-                            markNext.mutate({
-                              entryId: item.episode!.entryId,
-                              episode: {
-                                seasonNumber: item.episode!.seasonNumber,
-                                episodeNumber: item.episode!.episodeNumber,
-                              },
-                              watchedBefore: item.episode!.watched,
-                              total: item.episode!.total,
-                            })
-                        : item.movieEntryId
-                          ? () => markMovieSeen(item.movieEntryId!, item.title)
-                          : undefined
-                    }
-                  />
-                ))}
-              </Collapsible>
-            </Animated.View>
-          ) : null}
-
-          {grouped.map(([bucket, items]) => (
-            <Animated.View key={bucket} entering={FadeIn.duration(260)}>
-              <SectionHeader>{bucket}</SectionHeader>
-              {items.map((item) => {
-                // Out today → offer the check straight away; the date would just
-                // read "today" anyway. Future rows keep showing their date.
-                const markable = daysFromToday(item.date) <= 0;
-                const onMark = !markable
-                  ? undefined
-                  : item.episode
-                    ? () =>
-                        markNext.mutate({
-                          entryId: item.episode!.entryId,
-                          episode: {
-                            seasonNumber: item.episode!.seasonNumber,
-                            episodeNumber: item.episode!.episodeNumber,
-                          },
-                          watchedBefore: item.episode!.watched,
-                          total: item.episode!.total,
-                        })
-                    : item.movieEntryId
-                      ? () => markMovieSeen(item.movieEntryId!, item.title)
-                      : undefined;
+          <View
+            pointerEvents="box-none"
+            style={[styles.toggleBar, { bottom: tabBarClearance + 68 }]}
+          >
+            <View style={styles.viewToggle}>
+              {(['list', 'calendar'] as const).map((v) => {
+                const active = upcomingView === v;
                 return (
-                  <CardRow
-                    key={item.key}
-                    seed={item.seed}
-                    title={item.title}
-                    posterPath={item.posterPath}
-                    backdropPath={item.backdropPath}
-                    subtitle={item.subtitle}
-                    onPress={() => openMedia(item.tmdbId, item.mediaType)}
-                    right={
-                      onMark ? (
-                        <AnimatedCheck
-                          resetKey={
-                            item.episode
-                              ? `${item.episode.seasonNumber}-${item.episode.episodeNumber}`
-                              : item.key
-                          }
-                          onMark={onMark}
-                          accessibilityLabel={
-                            item.episode ? 'Marquer cet épisode vu' : 'Marquer comme vu'
-                          }
-                        />
-                      ) : (
-                        <Text style={[styles.upcomingDate, { color: colors.textMeta }]}>
-                          {dayMonthLabel(item.date)}
-                        </Text>
-                      )
-                    }
-                  />
+                  <Pressable
+                    key={v}
+                    onPress={() => switchView(v)}
+                    style={[
+                      styles.viewToggleItem,
+                      { backgroundColor: active ? colors.accent : colors.surface },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={v === 'list' ? 'Vue liste' : 'Vue calendrier'}
+                    accessibilityState={{ selected: active }}
+                  >
+                    <Ionicons
+                      name={v === 'list' ? 'list' : 'calendar'}
+                      size={22}
+                      color={active ? colors.accentText : colors.textSecondary}
+                    />
+                  </Pressable>
                 );
               })}
-            </Animated.View>
-          ))}
-
-          {undated.length > 0 ? (
-            <Animated.View entering={FadeIn.duration(260)}>
-              <Pressable
-                onPress={() => setUndatedOpen((v) => !v)}
-                style={styles.collapseHeader}
-                accessibilityRole="button"
-              >
-                <SectionHeader>{`Pas encore daté · ${undated.length}`}</SectionHeader>
-                <Ionicons
-                  name={undatedOpen ? 'chevron-up' : 'chevron-down'}
-                  size={18}
-                  color={colors.textMeta}
+            </View>
+          </View>
+          <Animated.ScrollView
+            ref={scrollRef}
+            contentContainerStyle={{
+              paddingHorizontal: spacing.screenPadding,
+              paddingBottom: tabBarClearance + BOTTOM_CONTROLS_CLEARANCE,
+            }}
+            showsVerticalScrollIndicator={false}
+            onScroll={(e) => {
+              currentOffset.current = e.nativeEvent.contentOffset.y;
+            }}
+            scrollEventThrottle={64}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={colors.textSecondary}
+              />
+            }
+          >
+            {upcomingView === 'calendar' ? (
+              calendarItems.length > 0 ? (
+                <UpcomingCalendar
+                  items={calendarItems}
+                  onOpen={openMedia}
+                  screenPadding={spacing.screenPadding}
+                  scrollRef={scrollRef}
+                  autoJump={!calendarSeen.current}
                 />
-              </Pressable>
-              <Collapsible open={undatedOpen}>
-                {undated.map((item) => (
-                  <CardRow
-                    key={item.key}
-                    seed={item.seed}
-                    title={item.title}
-                    posterPath={item.posterPath}
-                    backdropPath={item.backdropPath}
-                    subtitle={item.subtitle}
-                    onPress={() => openMedia(item.tmdbId, item.mediaType)}
-                  />
-                ))}
-              </Collapsible>
-            </Animated.View>
-          ) : null}
+              ) : (
+                <Text style={[styles.quiet, { color: colors.textMeta }]}>
+                  Rien dans ton calendrier pour l’instant.
+                </Text>
+              )
+            ) : (
+              <>
+                {backlog.length > 0 ? (
+                  <Animated.View entering={FadeIn.duration(260)}>
+                    <Pressable
+                      onPress={() => setBacklogOpen((v) => !v)}
+                      style={styles.collapseHeader}
+                      accessibilityRole="button"
+                    >
+                      <SectionHeader>{`À rattraper · ${backlog.length}`}</SectionHeader>
+                      <Ionicons
+                        name={backlogOpen ? 'chevron-up' : 'chevron-down'}
+                        size={18}
+                        color={colors.textMeta}
+                      />
+                    </Pressable>
+                    <Collapsible open={backlogOpen}>
+                      {backlog.map((item) => (
+                        <BacklogRow
+                          key={item.key}
+                          item={{
+                            key: item.key,
+                            seed: item.seed,
+                            title: item.title,
+                            posterPath: item.posterPath,
+                            backdropPath: item.backdropPath,
+                            subtitle: item.subtitle,
+                            episode: item.episode
+                              ? {
+                                  seasonNumber: item.episode.seasonNumber,
+                                  episodeNumber: item.episode.episodeNumber,
+                                }
+                              : undefined,
+                          }}
+                          onOpen={() => openMedia(item.tmdbId, item.mediaType)}
+                          onSnooze={() => snooze(item.entryId)}
+                          onMark={
+                            item.episode
+                              ? () =>
+                                  markNext.mutate({
+                                    entryId: item.episode!.entryId,
+                                    episode: {
+                                      seasonNumber: item.episode!.seasonNumber,
+                                      episodeNumber: item.episode!.episodeNumber,
+                                    },
+                                    watchedBefore: item.episode!.watched,
+                                    total: item.episode!.total,
+                                  })
+                              : item.movieEntryId
+                                ? () => markMovieSeen(item.movieEntryId!, item.title)
+                                : undefined
+                          }
+                        />
+                      ))}
+                    </Collapsible>
+                  </Animated.View>
+                ) : null}
 
-          {backlog.length === 0 && grouped.length === 0 && undated.length === 0 ? (
-            <Text style={[styles.quiet, { color: colors.textMeta }]}>
-              Rien à rattraper ni à l’horizon pour l’instant.
-            </Text>
-          ) : null}
-            </>
-          )}
-        </Animated.ScrollView>
+                {grouped.map(([bucket, items]) => (
+                  <Animated.View key={bucket} entering={FadeIn.duration(260)}>
+                    <SectionHeader>{bucket}</SectionHeader>
+                    {items.map((item) => {
+                      // Out today → offer the check straight away; the date would just
+                      // read "today" anyway. Future rows keep showing their date.
+                      const markable = daysFromToday(item.date) <= 0;
+                      const onMark = !markable
+                        ? undefined
+                        : item.episode
+                          ? () =>
+                              markNext.mutate({
+                                entryId: item.episode!.entryId,
+                                episode: {
+                                  seasonNumber: item.episode!.seasonNumber,
+                                  episodeNumber: item.episode!.episodeNumber,
+                                },
+                                watchedBefore: item.episode!.watched,
+                                total: item.episode!.total,
+                              })
+                          : item.movieEntryId
+                            ? () => markMovieSeen(item.movieEntryId!, item.title)
+                            : undefined;
+                      return (
+                        <CardRow
+                          key={item.key}
+                          seed={item.seed}
+                          title={item.title}
+                          posterPath={item.posterPath}
+                          backdropPath={item.backdropPath}
+                          subtitle={item.subtitle}
+                          onPress={() => openMedia(item.tmdbId, item.mediaType)}
+                          right={
+                            onMark ? (
+                              <AnimatedCheck
+                                resetKey={
+                                  item.episode
+                                    ? `${item.episode.seasonNumber}-${item.episode.episodeNumber}`
+                                    : item.key
+                                }
+                                onMark={onMark}
+                                accessibilityLabel={
+                                  item.episode ? 'Marquer cet épisode vu' : 'Marquer comme vu'
+                                }
+                              />
+                            ) : (
+                              <Text style={[styles.upcomingDate, { color: colors.textMeta }]}>
+                                {dayMonthLabel(item.date)}
+                              </Text>
+                            )
+                          }
+                        />
+                      );
+                    })}
+                  </Animated.View>
+                ))}
+
+                {undated.length > 0 ? (
+                  <Animated.View entering={FadeIn.duration(260)}>
+                    <Pressable
+                      onPress={() => setUndatedOpen((v) => !v)}
+                      style={styles.collapseHeader}
+                      accessibilityRole="button"
+                    >
+                      <SectionHeader>{`Pas encore daté · ${undated.length}`}</SectionHeader>
+                      <Ionicons
+                        name={undatedOpen ? 'chevron-up' : 'chevron-down'}
+                        size={18}
+                        color={colors.textMeta}
+                      />
+                    </Pressable>
+                    <Collapsible open={undatedOpen}>
+                      {undated.map((item) => (
+                        <CardRow
+                          key={item.key}
+                          seed={item.seed}
+                          title={item.title}
+                          posterPath={item.posterPath}
+                          backdropPath={item.backdropPath}
+                          subtitle={item.subtitle}
+                          onPress={() => openMedia(item.tmdbId, item.mediaType)}
+                        />
+                      ))}
+                    </Collapsible>
+                  </Animated.View>
+                ) : null}
+
+                {backlog.length === 0 && grouped.length === 0 && undated.length === 0 ? (
+                  <Text style={[styles.quiet, { color: colors.textMeta }]}>
+                    Rien à rattraper ni à l’horizon pour l’instant.
+                  </Text>
+                ) : null}
+              </>
+            )}
+          </Animated.ScrollView>
         </>
       )}
       <Fab onPress={() => router.push('/search')} accessibilityLabel="Rechercher un titre" />
@@ -650,4 +656,3 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
 });
-

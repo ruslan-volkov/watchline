@@ -51,7 +51,9 @@ export function BacklogRow({ item, onOpen, onMark, onSnooze }: Props) {
   const swipeRef = useRef<SwipeableMethods>(null);
 
   // Keyed so the check resets when the row advances to the next episode.
-  const epKey = item.episode ? `${item.episode.seasonNumber}-${item.episode.episodeNumber}` : 'movie';
+  const epKey = item.episode
+    ? `${item.episode.seasonNumber}-${item.episode.episodeNumber}`
+    : 'movie';
 
   // Green confirmation wash over the card, receding after it swells. Capped low
   // so the row stays readable through it.

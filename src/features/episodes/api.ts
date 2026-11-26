@@ -14,9 +14,7 @@ export async function fetchProgress(entryId: string): Promise<EpisodeProgressRow
 }
 
 /** Progress rows for several entries in one round-trip (home carousel / library). */
-export async function fetchProgressForEntries(
-  entryIds: string[],
-): Promise<EpisodeProgressRow[]> {
+export async function fetchProgressForEntries(entryIds: string[]): Promise<EpisodeProgressRow[]> {
   if (entryIds.length === 0) return [];
   const { data, error } = await supabase
     .from('episode_progress')

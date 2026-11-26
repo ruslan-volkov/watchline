@@ -129,7 +129,11 @@ export default function Profile() {
       title={profile?.username ?? 'Profil'}
       padded={false}
       headerRight={
-        <Pressable onPress={() => router.push('/edit-profile')} hitSlop={8} accessibilityRole="button">
+        <Pressable
+          onPress={() => router.push('/edit-profile')}
+          hitSlop={8}
+          accessibilityRole="button"
+        >
           <Text style={{ color: colors.accentInk, fontSize: 15, fontWeight: '600' }}>Modifier</Text>
         </Pressable>
       }
@@ -179,7 +183,9 @@ export default function Profile() {
           </View>
           {incoming.length > 0 ? (
             <View style={[styles.badge, { backgroundColor: colors.accent }]}>
-              <Text style={[styles.badgeText, { color: colors.accentText }]}>{incoming.length}</Text>
+              <Text style={[styles.badgeText, { color: colors.accentText }]}>
+                {incoming.length}
+              </Text>
             </View>
           ) : null}
           <Ionicons name="chevron-forward" size={20} color={colors.textMeta} />
@@ -278,8 +284,10 @@ export default function Profile() {
           <Switch
             value={profile?.friend_requests_enabled ?? true}
             onValueChange={(v) =>
-              changeSetting('friend_requests', String(v), () =>
-                void updateProfile({ friend_requests_enabled: v }),
+              changeSetting(
+                'friend_requests',
+                String(v),
+                () => void updateProfile({ friend_requests_enabled: v }),
               )
             }
             trackColor={{ true: colors.accent }}
@@ -295,8 +303,10 @@ export default function Profile() {
           <Switch
             value={profile?.recommendations_enabled ?? true}
             onValueChange={(v) =>
-              changeSetting('recommendations', String(v), () =>
-                void updateProfile({ recommendations_enabled: v }),
+              changeSetting(
+                'recommendations',
+                String(v),
+                () => void updateProfile({ recommendations_enabled: v }),
               )
             }
             trackColor={{ true: colors.accent }}
@@ -312,8 +322,10 @@ export default function Profile() {
           <Switch
             value={profile?.activity_visible ?? true}
             onValueChange={(v) =>
-              changeSetting('activity_visible', String(v), () =>
-                void updateProfile({ activity_visible: v }),
+              changeSetting(
+                'activity_visible',
+                String(v),
+                () => void updateProfile({ activity_visible: v }),
               )
             }
             trackColor={{ true: colors.accent }}

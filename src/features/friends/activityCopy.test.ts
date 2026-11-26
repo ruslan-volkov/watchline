@@ -31,12 +31,12 @@ describe('emptyActivityCopy', () => {
   });
 
   it('explains a pending request instead of blaming the other side', () => {
-    expect(emptyActivityCopy({ relation: 'outgoing', profile: profile(true) }, 'Ruslan').title).toBe(
-      'Demande en attente',
-    );
-    expect(emptyActivityCopy({ relation: 'incoming', profile: profile(true) }, 'Ruslan').title).toBe(
-      'Demande en attente',
-    );
+    expect(
+      emptyActivityCopy({ relation: 'outgoing', profile: profile(true) }, 'Ruslan').title,
+    ).toBe('Demande en attente');
+    expect(
+      emptyActivityCopy({ relation: 'incoming', profile: profile(true) }, 'Ruslan').title,
+    ).toBe('Demande en attente');
   });
 
   it('distinguishes a hidden friend from an empty one', () => {
@@ -49,8 +49,8 @@ describe('emptyActivityCopy', () => {
   });
 
   it('addresses the friend by name', () => {
-    expect(emptyActivityCopy({ relation: 'friend', profile: profile(false) }, 'Ruslan').message).toContain(
-      'Ruslan',
-    );
+    expect(
+      emptyActivityCopy({ relation: 'friend', profile: profile(false) }, 'Ruslan').message,
+    ).toContain('Ruslan');
   });
 });

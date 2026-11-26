@@ -40,7 +40,10 @@ Deno.serve(async (req: Request) => {
   const message = describeEvent(event);
   if (!message) return json({ sent: 0, reason: 'ignored' });
 
-  const { data: tokens } = await admin.from('push_tokens').select('token').eq('user_id', owner.user_id);
+  const { data: tokens } = await admin
+    .from('push_tokens')
+    .select('token')
+    .eq('user_id', owner.user_id);
   if (!tokens || tokens.length === 0) return json({ sent: 0, reason: 'no tokens' });
 
   const push = await fetch('https://exp.host/--/api/v2/push/send', {

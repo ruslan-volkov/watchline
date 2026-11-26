@@ -67,9 +67,9 @@ describe('requestSeries', () => {
 
   it('does nothing for an episode already on the NAS', async () => {
     const calls = fakeArr(known);
-    expect(await requestSeries(config, 1, { type: 'episode', seasonNumber: 1, episodeNumber: 1 })).toBe(
-      'already-downloaded',
-    );
+    expect(
+      await requestSeries(config, 1, { type: 'episode', seasonNumber: 1, episodeNumber: 1 }),
+    ).toBe('already-downloaded');
     expect(calls.some((c) => c.method !== 'GET')).toBe(false);
   });
 
@@ -135,7 +135,12 @@ describe('getSeriesStates', () => {
       '1x3': { kind: 'wanted' },
       '1x4': { kind: 'none' },
     });
-    expect(stateOfEpisodes(states, [{ seasonNumber: 1, episodeNumber: 1 }, { seasonNumber: 1, episodeNumber: 4 }])).toEqual({
+    expect(
+      stateOfEpisodes(states, [
+        { seasonNumber: 1, episodeNumber: 1 },
+        { seasonNumber: 1, episodeNumber: 4 },
+      ]),
+    ).toEqual({
       kind: 'partial',
       done: 1,
       total: 2,

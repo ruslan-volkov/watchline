@@ -18,10 +18,18 @@ function todayIso(): string {
 function hourInTz(date: Date, tz: string): number {
   const zone = tz || 'Europe/Paris';
   try {
-    const h = new Intl.DateTimeFormat('en-US', { timeZone: zone, hour: '2-digit', hour12: false }).format(date);
+    const h = new Intl.DateTimeFormat('en-US', {
+      timeZone: zone,
+      hour: '2-digit',
+      hour12: false,
+    }).format(date);
     return Number(h) % 24;
   } catch (_e) {
-    const h = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Paris', hour: '2-digit', hour12: false }).format(date);
+    const h = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Europe/Paris',
+      hour: '2-digit',
+      hour12: false,
+    }).format(date);
     return Number(h) % 24;
   }
 }
@@ -94,7 +102,8 @@ Deno.serve(async (req: Request) => {
     arr.push(t.token);
     tokensByUser.set(t.user_id, arr);
   }
-  if (tokensByUser.size === 0) return json({ sent: 0, missingTokens, reason: 'no eligible tokens' });
+  if (tokensByUser.size === 0)
+    return json({ sent: 0, missingTokens, reason: 'no eligible tokens' });
 
   const userIds = [...tokensByUser.keys()];
   const { data: entries } = await supabase
@@ -129,7 +138,9 @@ Deno.serve(async (req: Request) => {
     }
     if (titles.length === 0) continue;
     const body =
-      titles.length <= 3 ? titles.join(', ') : `${titles.slice(0, 2).join(', ')} +${titles.length - 2}`;
+      titles.length <= 3
+        ? titles.join(', ')
+        : `${titles.slice(0, 2).join(', ')} +${titles.length - 2}`;
     const title =
       titles.length > 1 ? `${titles.length} sorties aujourd'hui` : 'Une sortie aujourd’hui';
     for (const to of tokensByUser.get(uid)!) {

@@ -60,9 +60,9 @@ describe('requestMovie', () => {
 
   it('refuses before talking to the NAS when no profile or folder is picked', async () => {
     const calls = fakeArr(() => []);
-    await expect(
-      requestMovie({ ...config, qualityProfileId: null }, 1),
-    ).rejects.toMatchObject({ kind: 'not-configured' });
+    await expect(requestMovie({ ...config, qualityProfileId: null }, 1)).rejects.toMatchObject({
+      kind: 'not-configured',
+    });
     expect(calls).toHaveLength(0);
   });
 });
@@ -88,7 +88,9 @@ describe('getMovieState', () => {
   });
 
   it('is wanted when monitored with nothing queued', async () => {
-    fakeArr(({ path }) => (path.startsWith('/movie?') ? [{ id: 7, hasFile: false, monitored: true }] : []));
+    fakeArr(({ path }) =>
+      path.startsWith('/movie?') ? [{ id: 7, hasFile: false, monitored: true }] : [],
+    );
     expect(await getMovieState(config, 1)).toEqual({ kind: 'wanted' });
   });
 });

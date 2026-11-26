@@ -37,11 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [initializing, setInitializing] = useState(true);
 
   const fetchProfile = useCallback(async (userId: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
+    const { data } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
     setProfile(data ?? null);
     // Keep the stored timezone aligned with the device, so the daily digest can
     // fire at the user's local digest_time. Silent — never blocks the UI.
@@ -98,10 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!session) return;
       // Optimistic: reflect immediately (theme / density toggles feel instant).
       setProfile((prev) => (prev ? { ...prev, ...patch } : prev));
-      const { error } = await supabase
-        .from('profiles')
-        .update(patch)
-        .eq('id', session.user.id);
+      const { error } = await supabase.from('profiles').update(patch).eq('id', session.user.id);
       if (error) {
         // Roll back to source of truth on failure.
         await fetchProfile(session.user.id);

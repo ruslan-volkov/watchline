@@ -1,10 +1,6 @@
 import { useEffect } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 interface Props {
   /** 0..1 fraction filled. Animates when it changes. */

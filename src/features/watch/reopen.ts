@@ -19,7 +19,10 @@ interface Options {
  * seasons that already existed when they finished, and undated episodes (a season
  * TMDB announced but hasn't scheduled — nothing to resurface yet).
  */
-export function hasReturned(unwatched: EpisodeInfo[], { finishedAt, today, maxWatchedSeason }: Options): boolean {
+export function hasReturned(
+  unwatched: EpisodeInfo[],
+  { finishedAt, today, maxWatchedSeason }: Options,
+): boolean {
   return unwatched.some(
     (ep) =>
       !!ep.airDate &&

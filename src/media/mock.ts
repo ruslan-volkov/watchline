@@ -95,26 +95,27 @@ const SERIES: MockEntry[] = [
     releaseDate: offsetDate(-200),
     overview: 'Une brigade côtière face à une série de disparitions.',
     seasons: [
-      makeSeason(1, 8, [
-        'Le rivage',
-        'Contre-courant',
-        'Fond de cale',
-        'Étale',
-        'Ressac',
-        'Écume',
-        'Lame de fond',
-        'Marée basse',
-      ], -180),
-      makeSeason(2, 8, [
-        'Retour au port',
-        'Brume',
-        'Filets',
-        'Tempête',
-        'Phare',
-        'Récif',
-        'Naufrage',
-        'Accalmie',
-      ], -6),
+      makeSeason(
+        1,
+        8,
+        [
+          'Le rivage',
+          'Contre-courant',
+          'Fond de cale',
+          'Étale',
+          'Ressac',
+          'Écume',
+          'Lame de fond',
+          'Marée basse',
+        ],
+        -180,
+      ),
+      makeSeason(
+        2,
+        8,
+        ['Retour au port', 'Brume', 'Filets', 'Tempête', 'Phare', 'Récif', 'Naufrage', 'Accalmie'],
+        -6,
+      ),
     ],
   },
   {
@@ -125,14 +126,12 @@ const SERIES: MockEntry[] = [
     releaseDate: offsetDate(-90),
     overview: 'Comédie de bureau sur une équipe qui ne devrait pas exister.',
     seasons: [
-      makeSeason(1, 6, [
-        'Premier jour',
-        'La réunion',
-        'Le stagiaire',
-        'Pot de départ',
-        'Audit',
-        'Séminaire',
-      ], -70),
+      makeSeason(
+        1,
+        6,
+        ['Premier jour', 'La réunion', 'Le stagiaire', 'Pot de départ', 'Audit', 'Séminaire'],
+        -70,
+      ),
     ],
   },
   {
@@ -143,18 +142,23 @@ const SERIES: MockEntry[] = [
     releaseDate: offsetDate(2),
     overview: 'Science-fiction : un message reçu 30 ans trop tard.',
     seasons: [
-      makeSeason(1, 10, [
-        'Réception',
-        'Bruit blanc',
-        'Fréquence',
-        'Écho',
-        'Latence',
-        'Boucle',
-        'Interférence',
-        'Portée',
-        'Silence radio',
-        'Émission',
-      ], 2),
+      makeSeason(
+        1,
+        10,
+        [
+          'Réception',
+          'Bruit blanc',
+          'Fréquence',
+          'Écho',
+          'Latence',
+          'Boucle',
+          'Interférence',
+          'Portée',
+          'Silence radio',
+          'Émission',
+        ],
+        2,
+      ),
     ],
   },
   {
@@ -164,11 +168,7 @@ const SERIES: MockEntry[] = [
     posterPath: null,
     releaseDate: offsetDate(-300),
     overview: 'Saga familiale dans un vignoble en déclin.',
-    seasons: [
-      makeSeason(1, 8, [], -290),
-      makeSeason(2, 8, [], -140),
-      makeSeason(3, 8, [], 5),
-    ],
+    seasons: [makeSeason(1, 8, [], -290), makeSeason(2, 8, [], -140), makeSeason(3, 8, [], 5)],
   },
 ];
 
@@ -200,9 +200,7 @@ export const mockMediaProvider: MediaProvider = {
     // Derived from the mock's own episode lists, so the shape matches TMDB's.
     const details = await mockMediaProvider.getDetails(tmdbId, 'tv');
     const today = new Date().toISOString().slice(0, 10);
-    const dated = (details?.seasons ?? [])
-      .flatMap((s) => s.episodes)
-      .filter((e) => !!e.airDate);
+    const dated = (details?.seasons ?? []).flatMap((s) => s.episodes).filter((e) => !!e.airDate);
     const aired = dated.filter((e) => e.airDate! <= today);
     return {
       status: details?.status ?? null,
