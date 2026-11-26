@@ -1,8 +1,13 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 // Shared secret so only the scheduled cron job (not the public internet) can
-// trigger the digest. verify_jwt is disabled; this header is the gate.
-const CRON_SECRET = Deno.env.get('CRON_SECRET') ?? 'wl_cron_7f3a9c21b8e64d05';
+// trigger the digest. verify_jwt is disabled, so this header is the only gate:
+// without the secret the function must refuse to boot rather than fall back to a
+// default that is readable by anyone with the repository.
+const CRON_SECRET = Deno.env.get('CRON_SECRET');
+if (!CRON_SECRET) {
+  throw new Error('CRON_SECRET is unset. supabase secrets set --env-file supabase/functions/.env');
+}
 // TMDB read token — provided as a Supabase Edge Function secret:
 //   supabase secrets set TMDB_ACCESS_TOKEN=<v4 token>
 // When absent, episode-of-the-day detection is skipped (movies still work).

@@ -30,9 +30,10 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
-.env*.local
-.env
+# local env files. Catch-all because each environment gets its own file
+# (.env.staging, .env.production): a per-name rule misses the next one.
+.env*
+!.env.example
 
 # typescript
 *.tsbuildinfo

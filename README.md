@@ -44,13 +44,14 @@ Recherche multi (films + séries), fiche film, fiche série avec saisons/épisod
 - Edge Function `daily-digest` (`supabase/functions/daily-digest/`) : calcule les sorties
   du jour par utilisateur (films de la watchlist sortant aujourd'hui + épisodes du jour via
   TMDB `next/last_episode_to_air`) et envoie un push Expo groupé. Protégée par `x-cron-secret`.
-- Planifiée par `pg_cron` tous les jours à 08:00 UTC.
+- Planifiée par `pg_cron` toutes les heures (`0 * * * *`) : la fonction compare l'heure
+  locale de chaque utilisateur à son `digest_time`, donc un seul tir quotidien ne
+  toucherait que ceux dont l'heure choisie coïncide.
 - **Secrets** de la fonction (`TMDB_ACCESS_TOKEN`, `CRON_SECRET`) : dans `supabase/functions/.env`
   (local, non commité — voir `.env.example`). Les pousser vers la fonction déployée avec :
   `supabase secrets set --env-file supabase/functions/.env --project-ref <ref>`. Sans
   `TMDB_ACCESS_TOKEN`, le digest saute la détection d'épisodes mais fonctionne pour les films.
 - **La réception se teste sur un development build** (le push distant est inactif dans Expo Go).
-  `digest_time` par utilisateur n'est pas encore honoré (envoi unique à 08:00 UTC) — amélioration future.
 
 ### Téléchargements vers un NAS (fait)
 
@@ -141,10 +142,39 @@ tracking : on suit `usePathname()` depuis le layout racine, comme le recommande 
 
 ## Configuration
 
-Le fichier `.env` est déjà renseigné avec le projet Supabase `watchline` (`ruagmrftlzfrispfmvsp`).
-Pour repartir sur un autre projet, copie `.env.example` → `.env` et remplis les deux variables.
+Le dépôt ne nomme aucun projet Supabase : `.env` (non commité) décide vers lequel l'app
+parle, `.env.local` le surcharge, et `scripts/use-local-backend.sh` écrit ce dernier pour
+pointer sur la stack locale. Copie `.env.example` → `.env` et remplis les deux variables.
 
-Le schéma est versionné dans [`supabase/migrations/`](supabase/migrations) (déjà appliqué sur le projet cloud).
+En revanche, **un build EAS ne lit pas ces fichiers** : les `EXPO_PUBLIC_*` y viennent des
+environnements EAS, et `eas.json` associe chaque profil au sien (`development`, `preview`,
+`production`). Changer d'environnement est donc un changement de build, pas de fichier —
+voir `FORMATION-DEPLOIEMENT.md`, palier 3.
+
+Aujourd'hui `production` pointe sur le projet de prod et `preview` sur staging.
+`development` est volontairement vide : ces profils chargent le JS depuis Metro, qui lit
+`.env` en local. Inspecter avec `eas env:list --environment <env>`.
+
+> ⚠️ `eas env:pull` écrit par défaut dans `.env.local` — le fichier dont
+> `scripts/use-local-backend.sh` se sert pour pointer sur la stack locale. Passe toujours
+> `--path`, sinon ton dev local repart vers la prod sans rien dire.
+
+Il existe deux projets Supabase — production et staging — et le dépôt n'en nomme aucun.
+Une migration passe par staging avant d'atteindre la prod ; la procédure est dans
+`FORMATION-DEPLOIEMENT.md`, palier 3.
+
+Le schéma est versionné dans [`supabase/migrations/`](supabase/migrations). Être sur
+`master` ne veut pas dire être appliqué : rien n'automatise encore le déploiement.
+Le dépôt en porte 18. Staging en porte 16 : il lui manque les deux migrations de
+recommandations (`0014`, `0015`), arrivées depuis par `master`. La prod en porte 14 : il
+lui manque celles-là, `0017`, et `0018_digest_schedule` — ce dernier ne devant pas partir
+avant que ses deux valeurs Vault soient posées, sinon le digest s'envoie avec un en-tête
+nul. L'état des deux migrations de recommandations sur les projets déployés n'a pas été
+vérifié ici ; elles viennent d'un autre chantier. Et **`supabase db push`
+n'est pas utilisable sur ces projets** : leur historique porte des versions horodatées qui
+ne correspondent pas aux noms de fichiers, donc la CLI ne reconnaîtrait aucune migration
+comme appliquée et rejouerait tout. Les migrations se posent par l'API de management ou le
+tableau de bord.
 
 ### ⚠️ Étape manuelle : confirmation e-mail
 
@@ -161,6 +191,53 @@ npm install --legacy-peer-deps
 npx expo start
 ```
 Puis `i` (simulateur iOS), `a` (Android) ou scanne le QR avec Expo Go.
+
+## Développement local (backend jetable)
+
+Le schéma et la fonction tournent en local, sans jamais toucher au projet cloud.
+
+```bash
+supabase start                      # Postgres + Auth + Storage + Edge runtime (Docker)
+supabase db reset                   # rejoue les 10 migrations sur une base vierge
+./scripts/use-local-backend.sh      # écrit .env.local (prioritaire sur .env)
+npx expo start                      # l'app parle au backend local
+```
+
+`supabase db reset` est le test de reproductibilité du schéma : il doit passer sans
+erreur sur une base vide. Ce qu'il faut savoir :
+
+- **Droits API** — Supabase n'accorde plus automatiquement le DML sur les nouveaux
+  objets de `public`. Sans `0010_api_grants.sql`, les 6 tables remontent à froid sans
+  `SELECT` et toute requête échoue en `42501`. Les droits y sont alignés sur les
+  policies RLS de chaque table ; `anon` n'en reçoit aucun, volontairement.
+  ⚠️ Cette migration n'est pas encore appliquée sur le projet cloud (qui porte les
+  droits hérités de l'ancien défaut) — voir `FORMATION-DEPLOIEMENT.md`, palier 3.
+- **Planification** — `0018_digest_schedule.sql` déclare le job `pg_cron`, qui lit son
+  secret et son URL de base dans Vault au moment de l'appel. Ces deux valeurs sont de
+  la configuration, pas du schéma : `supabase/seed.sql` les pose pour le local (et y
+  désactive le job — le digest poste vers `exp.host`, donc un stack de dev avec de vrais
+  jetons atteindrait de vrais appareils). Pour l'exercer quand même :
+  `select cron.alter_job((select jobid from cron.job where jobname = 'watchline-daily-digest'), active := true);`
+  Sur un projet déployé, il faut poser les deux valeurs une fois — sinon le job échoue au
+  tir et la raison apparaît dans `cron.job_run_details`.
+- **Fonction** — `supabase functions serve --env-file supabase/functions/.env`.
+  Les secrets sont lus dans ce fichier (non commité) ; le conteneur ne les recharge
+  qu'au (re)démarrage de `serve`.
+- **Confirmation e-mail** — désactivée par `config.toml` en local, alors qu'elle exige
+  un clic au tableau de bord sur le cloud. Les mails restent dans le serveur de test
+  local au lieu de partir chez le destinataire.
+- **URL et ports** — demande-les à `supabase status`, ne les écris pas en dur : ils
+  viennent de `config.toml`, et un `supabase start -x <service>` peut laisser Studio
+  ou le serveur de mail de côté (les tests e2e le font).
+- **⚠️ La stack est partagée** — le `project_id` étant dans un fichier versionné, tous
+  les worktrees du dépôt pilotent _les mêmes_ conteneurs. Un `supabase db reset` fait
+  donc échouer le run e2e de quelqu'un d'autre, et un `supabase stop` le coupe net.
+  Vérifie avec `docker ps --filter name=watchline` avant de réinitialiser.
+- **Hôtes** — le simulateur iOS partage le `localhost` de la machine. Un émulateur
+  Android veut `10.0.2.2`, un appareil physique l'IP du réseau local :
+  `./scripts/use-local-backend.sh 192.168.1.20`.
+
+Revenir au cloud : supprimer `.env.local`.
 
 ## Vérifs
 

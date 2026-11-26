@@ -1,7 +1,7 @@
 -- Row-level security end to end: who can see / change whose data.
 -- Run with `supabase test db` (needs `supabase start`).
 begin;
-select plan(25);
+select plan(28);
 
 -- ============ Fixtures (as the table owner, RLS bypassed) ============
 -- alice <-> bob: accepted friends. alice -> carol: request still pending. dave: stranger.
@@ -124,6 +124,60 @@ select throws_ok($$ select * from public.profiles $$, '42501', null,
 select throws_ok($$ select * from public.search_profiles('a') $$, '42501', null,
   'anonymous callers cannot run search_profiles');
 reset role;
+
+-- The two assertions above only prove anon cannot SELECT. They passed long before
+-- 0016 because the CLI's local image withholds DML by default -- while the cloud
+-- platform grants anon everything, so the same assertions would fail there. A test
+-- that only ever runs where the assumption happens to hold cannot catch that, which
+-- is why this one checks the privileges themselves rather than one symptom of them.
+-- Listed table by table on purpose: a new table in `public` belongs in 0010's grants
+-- and in this list, or it inherits whatever the platform's default happens to be.
+select is(
+  (select coalesce(string_agg(table_name || ':' || privilege_type, ' '
+                              order by table_name, privilege_type), '')
+     from information_schema.role_table_grants
+    where grantee = 'anon'
+      and table_schema = 'public'
+      and table_name in ('profiles', 'friendships', 'media',
+                         'watch_entries', 'episode_progress', 'push_tokens',
+                         'nas_webhook_tokens')),
+  '',
+  'anon holds no privilege at all on the tables this schema owns (0016)'
+);
+
+-- 0016 cleans up the tables that exist; this is about the ones that do not yet. The cloud
+-- platform still carries the permissive ALTER DEFAULT PRIVILEGES, so every new object in
+-- `public` arrives reachable by anon -- measured on staging, where nas_webhook_tokens
+-- answered an anonymous request with 200 and an empty array ten seconds after its CREATE,
+-- while the revoked tables stayed at 401. Asserting on pg_default_acl rather than on a
+-- symptom, and scoped to `postgres` because that is the role migrations create objects as.
+select is(
+  (select coalesce(string_agg(d.defaclobjtype::text || ':' || a.privilege_type, ' '
+                              order by d.defaclobjtype::text, a.privilege_type), '')
+     from pg_default_acl d
+     join pg_namespace n on n.oid = d.defaclnamespace
+     cross join lateral aclexplode(d.defaclacl) a
+    where n.nspname = 'public'
+      and d.defaclrole = 'postgres'::regrole
+      and a.grantee = 'anon'::regrole),
+  '',
+  'anon has no default privilege of its own in public (0017)'
+);
+
+-- That assertion reads pg_default_acl, which only records grants naming a role. It cannot
+-- see one held through PUBLIC, and on this local image a new function in `public` is still
+-- EXECUTE-able by anon that way -- measured, and left open on purpose (see
+-- FORMATION-DEPLOIEMENT.md, palier 3). So assert the behaviour too, for the object kind
+-- 0017 does settle: the table rolls back with the rest of this test.
+create table public.zzz_default_privileges_probe (id uuid primary key default gen_random_uuid());
+select is(
+  (select coalesce(string_agg(privilege_type, ',' order by privilege_type), '')
+     from information_schema.role_table_grants
+    where grantee = 'anon' and table_schema = 'public'
+      and table_name = 'zzz_default_privileges_probe'),
+  '',
+  'a table created after 0017 gives anon nothing, without anyone revoking it'
+);
 
 -- ============ helpers stay off the REST surface ============
 select hasnt_function('public', 'are_friends', array['uuid', 'uuid'],

@@ -1,0 +1,36 @@
+-- 0016 revoked anon's privileges on the tables that exist. This is about the ones that do
+-- not exist yet. On the cloud, ALTER DEFAULT PRIVILEGES still hands anon everything on each
+-- new object in `public`, so that revoke would have to be repeated forever -- and an
+-- explicit list cannot catch its own omissions. Measured on staging rather than assumed:
+-- ten seconds after 0013 created nas_webhook_tokens, an anonymous request got 200 and an
+-- empty array, while the six already-revoked tables stayed at 401.
+--
+-- Scoped to `postgres` because default privileges attach to the role that creates the
+-- object, and migrations run as postgres -- pg_default_acl lists it as the granter for
+-- every table here. supabase_admin carries its own permissive defaults, in the local image
+-- as well as the cloud, but postgres is not a member of it and the objects it creates are
+-- the platform's rather than ours.
+--
+-- Nothing that already exists changes: ALTER DEFAULT PRIVILEGES applies to objects created
+-- afterwards. And it runs in both places, so local and cloud converge on the same rule
+-- instead of on whichever default each platform happens to ship. rls.test.sql asserts the
+-- behaviour by creating a table inside the test transaction and checking anon gets nothing.
+--
+-- Functions are deliberately absent, and not for lack of trying. A `revoke all on functions
+-- from anon` removes anon's named entry from the default ACL but changes nothing
+-- observable: a new function in `public` comes up with a NULL proacl, which means
+-- PostgreSQL's built-in default -- EXECUTE to PUBLIC -- and anon is a member of PUBLIC.
+-- Verified on the local image and again on staging, where a probe function stayed
+-- EXECUTE-able by anon with PUBLIC holding the grant. Closing it means revoking EXECUTE on
+-- functions from PUBLIC, which reaches further than anon and which behaved differently in
+-- the two places when tried, so it is a decision of its own rather than a line smuggled in
+-- here. Meanwhile the convention that works is the one 0002 and 0003 already use: revoke
+-- EXECUTE per function, explicitly.
+--
+-- Still anon only. Doing the same for `authenticated` would make every new table invisible
+-- to the Data API until it got an explicit grant. That is the convention 0010 set and what
+-- the local image already enforces, but on the cloud it would also catch tables created
+-- from the dashboard, so it is a wider decision than the one this migration settles.
+
+alter default privileges for role postgres in schema public revoke all on tables    from anon;
+alter default privileges for role postgres in schema public revoke all on sequences from anon;

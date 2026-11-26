@@ -393,6 +393,15 @@ deno_version = 2
 enabled = true
 verify_jwt = false
 
+# Same reasoning for the NAS webhook: Radarr / Sonarr have no Supabase session, and the
+# token inside the address is the credential (see 0013). Production was already running it
+# with verification off, but nothing in this repo said so -- so a plain
+# `supabase functions deploy` would have turned it back on and broken the webhook without
+# anyone touching its code. Found by deploying to staging and comparing the two projects.
+[functions.nas-download-complete]
+enabled = true
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 55327
