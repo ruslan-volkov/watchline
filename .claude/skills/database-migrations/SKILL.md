@@ -41,11 +41,19 @@ Run locally with `supabase start` then `npm run test:db`. CI runs the same.
 
 ## After the schema changes
 
-- Regenerate `src/types/db.ts` from the local database (`supabase gen types typescript --local > src/types/db.ts`) and fix the type errors it surfaces; `npx tsc --noEmit` must pass.
+- Regenerate `src/types/db.ts` from the local database (`supabase gen types typescript --local > src/types/db.ts`) and fix the type errors it surfaces; `npm run typecheck` must pass.
 - If an Edge Function's access changed, update its `service_role` grants in the same migration.
 
-## Shipping to production
+## Shipping
 
-Production's migration history does not match these files yet, so `supabase db push` is not safe. Until that is repaired, a human applies the migration through the Supabase dashboard SQL editor, and the PR description says so. Never run anything against the production project yourself.
+Both hosted projects' migration histories match these files (repaired 2026-11-26/27), so `supabase db push` is the way a migration ships. Staging first, then production:
 
-When the history is repaired, replace this section with the automated path.
+1. After the PR merges, push to staging (`lmagsjyusqjxpngpqqcn`): `supabase link --project-ref lmagsjyusqjxpngpqqcn`, then `supabase db push --dry-run`. The dry run must list exactly the new files. Then `supabase db push`.
+2. Check the change on staging. A free project pauses after 7 days of low activity, so restore it first if it's paused.
+3. Repeat on production (`ruagmrftlzfrispfmvsp`).
+
+A migration that reads a Vault secret (as `0018` does) needs that secret in each project's Vault before it's pushed; say so in the PR description.
+
+Never change the schema from the dashboard or the SQL editor: a change that bypasses the files is exactly the drift the repair removed. If a hotfix had to go in that way, write it as a migration file and mark it applied with `supabase migration repair`.
+
+A human runs the pushes. Don't run `db push` or `migration repair` against a hosted project yourself.
